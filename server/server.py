@@ -1,10 +1,8 @@
 # based on https://pythontic.com/modules/socket/udp-client-server-example
-from helper import *
 import socket
 import time
 import random
-import sys
-sys.path.append("../helper")
+from helper import *
 
 localIP = ""
 localPort = 20001

@@ -1,8 +1,6 @@
 # based on https://pythontic.com/modules/socket/udp-client-server-example
 import os
 import socket
-import sys
-sys.path.append("../helper")
 from helper import *
 
 # Headers
@@ -19,7 +17,7 @@ end = 0xcf
 
 serverAddressPort = ("", 20001)
 bufferSize = 65507
-file_indexes = "res/files.txt"
+file_indexes = "../res/files.txt"
 files_location = "files/"
 
 # time.sleep(.5)

@@ -2,8 +2,6 @@
 import socket
 import time
 import random
-import sys
-sys.path.append("../helper")
 from helper import *
 
 # Headers
