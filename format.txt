@@ -1,0 +1,52 @@
+// ! Consider extending all bytecodes to the same length (7 (8?) bytes)
+// ! 8 bytes required for the discering of which client is requesting the current file
+// Actions always come first (first byte) as this determines what the rest of the bytecode means. Hence,
+// for all bytecodes less than 8 bytecodes long, all subsequent bits will be set to 0 or otherwise ignored.
+// Said bytecodes are depicted as 0xYY...00
+
+Client header: 
+    - GREET: 1 byte (0x10...00) - Greet action
+    - FETCH: 3 bytes [Detailed below (1)]
+    - RECEIVED: 3 bytes [Detailed below (2)]
+    - END: 1 byte (0x1F...00) - All files received action
+
+    (1) When requesting a file (FETCH):
+        - 1 byte (FETCH action) - 0x14
+        - 2 bytes (file requested) - 0x0000 - 0xFFFF
+    
+    (2) When receiving a file (RECEIVED):
+        - 1 byte (RECEIVED action) - 0x18
+        - 2 bytes (file requested) - 0x0000 - 0xFFFF
+        
+
+Server header:
+    - ACK: 1 byte (0xf0...00) - Acknowledgement action
+    - READY: 1 byte (0xfa...00) - Ready to receive action
+    - FETCH: 4 bytes [Detailed below (1)]
+    - RETURN: 8 bytes [Detailed below (2)]
+    - END: 1 byte (0xFF...00) - End workers action
+
+    (1) When requesting a file from worker (FETCH):
+        - 1 byte (FETCH action) - 0x14
+        - 1 byte (Client index) - 0x00-0xFF
+        - 2 bytes (file requested) - 0x0000 - 0xFFFF
+
+    (2) When returning a file to client (RETURN):
+        - 1 byte (RETURN action) - 0x1c
+        - 1 byte (Client index) - 0x00-0xFF
+        - 2 bytes (file requested) - 0x0000 - 0xFFFF
+        - 2 bytes (packet number) - 0x0000 - 0xFFFF
+        - 2 bytes (total packets) - 0x0000 - 0xFFFF
+
+
+Worker header:
+    - GREET: 1 byte (0xC0...00) - Greet action
+    - RETURN: 8 bytes [Detailed below]
+    - END: 1 byte (0xCF...00) - No files to deliver action
+
+    When returning a file (RETURN):
+        - 1 byte (RETURN action) - 0xc4
+        - 1 byte (Client index) - 0x00-0xFF
+        - 2 bytes (file requested) - 0x0000 - 0xFFFF
+        - 2 bytes (packet number) - 0x0000 - 0xFFFF
+        - 2 bytes (total packets) - 0x0000 - 0xFFFF

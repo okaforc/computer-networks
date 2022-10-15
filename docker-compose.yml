@@ -7,17 +7,20 @@ services:
       - ./tcpdump:/tcpdump
   server:
     network_mode: "host"
-    build: "server/"
-    command: python ./server.py
+    build: 
+      dockerfile: server/Dockerfile
+    command: python server.py
   client:
-    build: "client/"
-    command: python ./client.py
+    build: 
+      dockerfile: client/Dockerfile
+    command: python client.py
     network_mode: "host"
     depends_on:
       - server
   worker:
-    build: "worker/"
-    command: python ./worker.py
+    build: 
+      dockerfile: worker/Dockerfile
+    command: python worker.py
     network_mode: "host"
     depends_on:
       - server
