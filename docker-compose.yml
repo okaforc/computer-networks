@@ -1,0 +1,23 @@
+version: "3"
+services:
+  tcpdump:
+    image: kaazing/tcpdump
+    network_mode: "host"
+    volumes:
+      - ./tcpdump:/tcpdump
+  server:
+    network_mode: "host"
+    build: "server/"
+    command: python ./server.py
+  client:
+    build: "client/"
+    command: python ./client.py
+    network_mode: "host"
+    depends_on:
+      - server
+  worker:
+    build: "worker/"
+    command: python ./worker.py
+    network_mode: "host"
+    depends_on:
+      - server
