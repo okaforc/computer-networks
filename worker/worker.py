@@ -2,7 +2,7 @@
 import os
 import socket
 from helper import *
-
+initialise() # initialise res/files.txt
 # Headers
 
 # Inwards
@@ -13,13 +13,13 @@ s_end = 0xff
 # Outwards
 greet = 0xc0
 returned = 0xc4
+ready = 0xc8
 end = 0xcf
 # worker_sig = b"W - "  # worker signature
 
 serverAddressPort = ("", 20001)
 bufferSize = 65507
 file_indexes = "files.txt"
-files_location = ""
 
 # time.sleep(.5)
 bytesToSend = combine_bytes(greet, f="full")
@@ -36,9 +36,10 @@ while True:
 
     if msg:
         display_msg(msg, 0)
+        print(pretty_print(msg), client_index)
         if action == fetch:
             # Access the file requested by its index and split it into parts to send in a loop
-            fs = files_location + get_available_files()[client_index].rstrip()
+            fs = get_available_files()[file_requested]
             file_to_send = open(fs, "rb")
             packet_part = file_to_send.read(bufferSize - 8)
             
@@ -47,18 +48,20 @@ while True:
             if total_packets < 1:
                 total_packets = 0x1
             packet_number = 0x1
-            print(total_packets)
+            print("total packets", total_packets)
+            print("client num", client_index)
             
             while packet_part:
                 bytesToSend = combine_bytes(returned, client_index, file_requested, packet_number, total_packets, f="full")
-                print(file_requested)
                 UDPClientSocket.sendto(bytesToSend, serverAddressPort)
-                print("worker has " + get_available_files()[file_requested])
-                packet_part = file_to_send.read(bufferSize - 8)
+                print(file_requested)
+                print("worker has", get_available_files()[file_requested], packet_number, total_packets, client_index)
+                packet_part = file_to_send.read(bufferSize - 8) # TODO: send parts of the actual file
                 packet_number += 0x1
             
+            UDPClientSocket.sendto(combine_bytes(ready, f="any"), serverAddressPort)
             file_to_send.close()
-        elif action == end:
+        elif action == s_end:
             # display_msg(msg, 0)
             bytesToSend = combine_bytes(end, f="sw")
             # Send to server using created UDP socket

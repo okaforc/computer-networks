@@ -21,6 +21,7 @@ c_end = 0x1F
 # Workers
 w_greet = 0xc0
 w_returned = 0xc4
+w_ready = 0xc8
 w_end = 0xcf
 
 # Outwards
@@ -94,7 +95,8 @@ while True:
                     # print(type(j), j)
                     # print(value_in_dict_list(clients, i, 0))
                     # print("wait a sec:", file_requested, value_in_dict_list(clients, i, 0), i)
-                    send_client_content(index_key_in_list(clients, i), j)
+                    send_client_content(index_key_in_list(clients, key_in_dict_list(clients, i, 0)), j)
+                    print("current client index:", i, "clients:", len(clients))
                     value_in_dict_list(clients, i, 0).remove(j)
 
     bytesAddressPair = UDPServerSocket.recvfrom(bufferSize)
@@ -124,14 +126,10 @@ while True:
         # Sending a reply to client
         UDPServerSocket.sendto(bytesToSend, address)
     elif action == c_fetch:
-        print("fetchinggggg " + get_available_files()[file_requested])
         if len(workerIPs) > 0:
             send_client_content(index_key_in_list(clients, address), file_requested)
         else:
             # send to client backlog
-            # print(clients[index_key_in_list(clients, address)][address])
-            # print("wait a sec:", file_requested, clients[index_key_in_list(clients, address)][address])
-            # print()
             clients[index_key_in_list(clients, address)][address].append(file_requested)
     elif action == received:
         # clients[index_key_in_list(clients, address)][address].append(
@@ -152,17 +150,23 @@ while True:
             bytesToSend = combine_bytes(ack, f="sw")
             UDPServerSocket.sendto(bytesToSend, address)
     elif action == w_returned:
-        # display_msg(message, .5)
-        # free the current worker IP address
-        usedWorkerIPs.remove(address)
-        workerIPs.append(address)
-        # TODO: better fix for client numbers < 0x10 (16)
-        bytesToSend = combine_bytes(returned, 0x0, get_bytes(message, 0, 14), f="any")  # content without fetch action
+        bytesToSend = combine_bytes(
+            returned, 
+            get_bytes(message, 12, 2),
+            get_bytes(message, 8, 4),
+            get_bytes(message, 4, 4),
+            get_bytes(message, 0, 4),
+            f="full"
+            )  # content without fetch action
         #  + b' ' + str.encode(str(address[1]))
         # get backlog client's address
         # ad = str_to_tuple(bytesToSend.split(b" | ")[-1].decode())
-        print("returning " + open("files.txt").readlines()[get_bytes(message, 12, 2)])
+        print("returning " + get_available_files()[get_bytes(message, 12, 2)])
+        
+        print(pretty_print(message))
         # print()
+        print("#################### length: " + str(len(clients)) + " ############################")
+        print(clients)
         UDPServerSocket.sendto(
             bytesToSend,
             key_in_dict_list(clients, get_bytes(message, 12, 2), 0)  # client index
@@ -171,6 +175,10 @@ while True:
         # mes = fetch + b' ' + file_requested[1]
         # if mes in clients[ad]:
         #     clients[ad].remove(fetch + b' ' + file_requested[1])
+    elif action == w_ready:
+        # free the current worker IP address
+        usedWorkerIPs.remove(address)
+        workerIPs.append(address)
     elif action == w_end:
         # display_msg(message, .1)
         worker_shutdowns += 1

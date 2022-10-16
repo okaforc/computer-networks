@@ -4,7 +4,8 @@
 
 
 import time
-
+import os
+from binascii import hexlify
 
 code = {
     0x10: "client greet",
@@ -20,8 +21,12 @@ code = {
     
     0xc0: "worker greet",
     0xc4: "worker return",
+    0xc8: "worker ready",
     0xcf: "worker end"
 }
+
+def pretty_print(msg:bytes):
+    return hexlify(msg, "-", 2)
 
 
 def display_msg(msg: bytes, delay):
@@ -59,7 +64,11 @@ def get_available_files():
     fl = open("files.txt")
     l = fl.readlines()
     fl.close()
+    for i in range(len(l)):
+        l[i] = l[i].rstrip() # remove newline
     return l
+
+
 
 
 def combine_bytes(*byte_parts: bytes, f:str):
@@ -137,12 +146,13 @@ def get_bytes(bytestring: bytes, pos: int, length: int):
 
 
 def index_key_in_list(l:list, k):
-    """"Given a list `l` of dictionaries and a key `k`, return the index of the dictionary
-        that has k as a value, or -1 if it isn't in it."""
+    """Given a list `l` of dictionaries and a key `k`, return the index of the dictionary
+        that has `k` as a value, or -1 if it isn't in it."""
     
     for i in range(len(l)):
         d = l[i]
         if k in list(d.keys()):
+            print("index:", i)
             return i
     return -1
 
@@ -150,6 +160,7 @@ def index_key_in_list(l:list, k):
 def key_in_dict_list(l:list, i:int, n:int):
     """"Given a list `l` of dictionaries and an int `i`, return the `n`th key in the 
         dictionary at the index `i`."""
+    print(i)
     return list(l[i].keys())[n]
 
 
@@ -177,3 +188,12 @@ def str_to_tuple(s: str):
     a = p[0][1:-1]
     b = int(p[1])
     return (a, b)
+
+
+def initialise():
+    """NOTE: ONLY WORKER.PY MAY CALL THIS FILE\n
+        Write the file names from worker/files to res/files.txt."""
+    if __file__ == "worker.py":
+        with open("files.txt", 'w') as f:
+            for file in os.listdir("/files"):
+                f.write(str(file) + "\n")

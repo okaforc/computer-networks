@@ -66,6 +66,7 @@ Server header:
 Worker header:
     - GREET: 1 byte (0xC0...00) - Greet action
     - RETURN: 8 bytes [Detailed below]
+    - READY: 1 byte (0xC8...00) - Ready to receive action
     - END: 1 byte (0xCF...00) - No files to deliver action
 
     When returning a file (RETURN):

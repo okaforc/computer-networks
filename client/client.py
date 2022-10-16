@@ -19,6 +19,10 @@ fetch = 0x14
 received = 0x18
 end = 0x1F
 
+
+new_files_dir = "/rec_files/" # received files
+
+
 item_indexes_to_request = []
 received_items = []
 item_parts = {}
@@ -73,7 +77,7 @@ while True:
     msgFromServer = UDPClientSocket.recvfrom(bufferSize)
     message = msgFromServer[0]
     action = get_bytes(message, 14, 2)
-    num = get_bytes(message, 12, 2)
+    client_ind = get_bytes(message, 12, 2)
     file_ind = get_bytes(message, 8, 4)
     packet_number = get_bytes(message, 4, 4)
     total_packets = get_bytes(message, 0, 4)
@@ -101,11 +105,10 @@ while True:
             # bytesToSend = client_sig + end_req
             # UDPClientSocket.sendto(bytesToSend, serverAddressPort)
         elif action == returned:
-            bytesToSend = combine_bytes(received, num, file_ind, f="full")
+            bytesToSend = combine_bytes(received, client_ind, file_ind, f="full")
             UDPClientSocket.sendto(bytesToSend, serverAddressPort)
             if packet_number == total_packets:
-                print("received", get_available_files()[file_ind], ":", str(
-                    packet_number), "/", str(total_packets))
+                print("received " + get_available_files()[file_ind] + ": " + str(packet_number) + "/" + str(total_packets))
                 received_items.append(file_ind)
             else:
                 print("got somethin here: " + get_available_files()[file_ind])
@@ -113,6 +116,8 @@ while True:
             # remove_item_from_request(ic)  # pop received item from queue
             # bytesToSend = combine_bytes(received, file, f="cs")
             # UDPClientSocket.sendto(bytesToSend, serverAddressPort)
+        else:
+            print(received_items)
         if len(item_indexes_to_request) == 0 and len(received_items) == len_of_items_requested:
             bytesToSend = combine_bytes(end, f="cs")
             UDPClientSocket.sendto(bytesToSend, serverAddressPort)
