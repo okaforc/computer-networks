@@ -20,7 +20,7 @@ received = 0x18
 end = 0x1F
 
 
-new_files_dir = "/rec_files/" # received files
+new_files_dir = "../rec_files/" # received files
 
 
 item_indexes_to_request = []
@@ -55,9 +55,9 @@ items_to_request = get_available_files()
 
 
 # add a random amount of random file indexes
-rand_n = random.randrange(3, len(items_to_request))
+rand_n = random.randrange(1, 5)
 for i in range(rand_n):
-    add_item_to_request(random.randrange(0, len(items_to_request)))
+    add_item_to_request(random.randrange(0, len(items_to_request)-1))
 
 # create a list for each part of the file received using the filename as the key
 for i in item_indexes_to_request:
@@ -76,11 +76,14 @@ a = time.time()
 while True:
     msgFromServer = UDPClientSocket.recvfrom(bufferSize)
     message = msgFromServer[0]
-    action = get_bytes(message, 14, 2)
-    client_ind = get_bytes(message, 12, 2)
-    file_ind = get_bytes(message, 8, 4)
-    packet_number = get_bytes(message, 4, 4)
-    total_packets = get_bytes(message, 0, 4)
+    
+    temp = hex(int.from_bytes(message, "big"))[2:] # header + data
+    n = len(temp)
+    action = get_bytes(message, n-2, 2)
+    client_ind = get_bytes(message, n-4, 2)
+    file_ind = get_bytes(message, n-8, 4)
+    packet_number = get_bytes(message, n-12, 4)
+    total_packets = get_bytes(message, n-16, 4)
     # only respond once a response from the server has been achieved
     if msgFromServer:
         display_msg(message, .5)
@@ -90,7 +93,7 @@ while True:
             # UDPClientSocket.sendto(bytesToSend, serverAddressPort)
             while len(item_indexes_to_request) > 0:
                 current_file_to_request = item_indexes_to_request[0]
-                print("requesting " + items_to_request[0])
+                print("requesting " + get_available_files()[item_indexes_to_request[0]])
                 # print()
                 # server is awake, so ask to awaken workers
                 bytesToSend = combine_bytes(
@@ -107,17 +110,25 @@ while True:
         elif action == returned:
             bytesToSend = combine_bytes(received, client_ind, file_ind, f="full")
             UDPClientSocket.sendto(bytesToSend, serverAddressPort)
+            
+            data = get_bytes(message, 0, n-16) # data from incoming file
             if packet_number == total_packets:
                 print("received " + get_available_files()[file_ind] + ": " + str(packet_number) + "/" + str(total_packets))
                 received_items.append(file_ind)
             else:
                 print("got somethin here: " + get_available_files()[file_ind])
+            
+            
+            with open(new_files_dir+get_available_files()[file_ind], 'ab') as f:
+                f.write(message[16:]) # data without header
+            
             # ic = message[4:].split(b' ')[1]  # incoming content
             # remove_item_from_request(ic)  # pop received item from queue
             # bytesToSend = combine_bytes(received, file, f="cs")
             # UDPClientSocket.sendto(bytesToSend, serverAddressPort)
         else:
-            print(received_items)
+            # print(received_items)
+            pass
         if len(item_indexes_to_request) == 0 and len(received_items) == len_of_items_requested:
             bytesToSend = combine_bytes(end, f="cs")
             UDPClientSocket.sendto(bytesToSend, serverAddressPort)

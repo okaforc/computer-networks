@@ -108,8 +108,17 @@ while True:
     
     # Determine the next action based on who said what.
     # Each message is prefixed with the signature of the origin, including the messages the server sends out.
-    action = get_bytes(message, 14, 2)
-    file_requested = get_bytes(message, 10, 4)
+    temp = hex(int.from_bytes(message, "big"))[2:] # header + data
+    n = len(temp)
+    action = get_bytes(message, n-2, 2)
+    file_requested = get_bytes(message, n-6, 4)
+    
+    # client_ind = get_bytes(message, n-4, 2)
+    
+    # action = get_bytes(message, 14, 2)
+    # print("////////////", get_bytes(message, len(hex(int.from_bytes(message, "big"))[2:])-2, 2))
+    # print("????????????", action)
+    # file_requested = get_bytes(message, 10, 4)
 
     display_msg(message, .5)
     # print(hex(action))
@@ -150,26 +159,33 @@ while True:
             bytesToSend = combine_bytes(ack, f="sw")
             UDPServerSocket.sendto(bytesToSend, address)
     elif action == w_returned:
+        temp = hex(int.from_bytes(message, "big"))[2:] # header + data
+        n = len(temp)
+        # print("////////////", get_bytes(message, n-2, 2))
         bytesToSend = combine_bytes(
-            returned, 
-            get_bytes(message, 12, 2),
-            get_bytes(message, 8, 4),
-            get_bytes(message, 4, 4),
-            get_bytes(message, 0, 4),
-            f="full"
+            returned, # action
+            get_bytes(message, n-4, 2), # client index
+            get_bytes(message, n-8, 4), # file index
+            get_bytes(message, n-12, 4), # packet number
+            get_bytes(message, n-16, 4), # total packets
+            f="full" # format
             )  # content without fetch action
-        #  + b' ' + str.encode(str(address[1]))
-        # get backlog client's address
-        # ad = str_to_tuple(bytesToSend.split(b" | ")[-1].decode())
-        print("returning " + get_available_files()[get_bytes(message, 12, 2)])
+        
+        # print("returning " + get_available_files()[get_bytes(message, 12, 2)])
         
         print(pretty_print(message))
         # print()
-        print("#################### length: " + str(len(clients)) + " ############################")
-        print(clients)
+        # print("#################### length: " + str(len(clients)) + " ############################")
+        # print(clients)
+        head = int.from_bytes(bytesToSend, "big")
+        # print(message)
+        data = get_bytes(message, 0, n-16)
+        
+        bytesToSend = combine_bytes_any(head, data, f="any", length=n)
+        
         UDPServerSocket.sendto(
             bytesToSend,
-            key_in_dict_list(clients, get_bytes(message, 12, 2), 0)  # client index
+            key_in_dict_list(clients, get_bytes(message, n-4, 2), 0)  # client index
         )
         # remove item from client backlog
         # mes = fetch + b' ' + file_requested[1]

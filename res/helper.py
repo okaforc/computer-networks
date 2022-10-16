@@ -12,66 +12,129 @@ code = {
     0x14: "client fetch",
     0x18: "client received",
     0x1f: "client end",
-    
+
     0xf0: "server ack",
     0xf4: "server fetch",
     0xf8: "server return",
     0xfa: "server ready",
     0xff: "server end",
-    
+
     0xc0: "worker greet",
     0xc4: "worker return",
     0xc8: "worker ready",
     0xcf: "worker end"
 }
 
-def pretty_print(msg:bytes):
+
+def pretty_print(msg: bytes):
     return hexlify(msg, "-", 2)
 
 
 def display_msg(msg: bytes, delay):
     """Print the encoded message `msg` after `delay` seconds"""
-        
-    action = code[get_bytes(msg, 14, 2)]
+    
+    temp = hex(int.from_bytes(msg, "big"))[2:] # header + data
+    n = len(temp)
+    
+    action = code[get_bytes(msg, n-2, 2)]
     new_msg = action
-    if action == code[0x14]: 
-        new_msg += " " + get_available_files()[get_bytes(msg, 10, 4)]
-    elif action == code[0x18]: 
-        new_msg += " " + get_available_files()[get_bytes(msg, 8, 4)]
-        new_msg += " " + str(get_bytes(msg, 4, 4))
-        new_msg += " " + str(get_bytes(msg, 0, 4))
-    elif action == code[0xf4]: 
-        new_msg += " " + str(get_bytes(msg, 12, 2))
-        new_msg += " " + get_available_files()[get_bytes(msg, 8, 4)]
-    elif action == code[0xf8]: 
-        new_msg += " " + str(get_bytes(msg, 12, 2))
-        new_msg += " " + get_available_files()[get_bytes(msg, 8, 4)]
-        new_msg += " " + str(get_bytes(msg, 4, 4))
-        new_msg += " " + str(get_bytes(msg, 0, 4))
+    if action == code[0x14]:
+        new_msg += " " + get_available_files()[get_bytes(msg, n-6, 4)]
+    elif action == code[0x18]:
+        new_msg += " " + get_available_files()[get_bytes(msg, n-8, 4)]
+        new_msg += " " + str(get_bytes(msg, n-12, 4))
+        new_msg += " " + str(get_bytes(msg, n-16, 4))
+    elif action == code[0xf4]:
+        new_msg += " " + str(get_bytes(msg, n-4, 2))
+        new_msg += " " + get_available_files()[get_bytes(msg, n-8, 4)]
+    elif action == code[0xf8]:
+        new_msg += " " + str(get_bytes(msg, n-4, 2))
+        new_msg += " " + get_available_files()[get_bytes(msg, n-8, 4)]
+        new_msg += " " + str(get_bytes(msg, n-12, 4))
+        new_msg += " " + str(get_bytes(msg, n-16, 4))
     elif action == code[0xc4]:
-        new_msg += " " + str(get_bytes(msg, 12, 2))
-        new_msg += " " + get_available_files()[get_bytes(msg, 8, 4)]
-        new_msg += " " + str(get_bytes(msg, 4, 4))
-        new_msg += " " + str(get_bytes(msg, 0, 4))
-        
+        new_msg += " " + str(get_bytes(msg, n-4, 2))
+        new_msg += " " + get_available_files()[get_bytes(msg, n-8, 4)]
+        new_msg += " " + str(get_bytes(msg, n-12, 4))
+        new_msg += " " + str(get_bytes(msg, n-16, 4))
+
     print("{}".format(new_msg))
     time.sleep(delay)
 
 
 def get_available_files():
     """Return the list of available files as a list of strings"""
-    
+
     fl = open("files.txt")
     l = fl.readlines()
     fl.close()
     for i in range(len(l)):
-        l[i] = l[i].rstrip() # remove newline
+        l[i] = l[i].rstrip()  # remove newline
     return l
 
 
+def combine_bytes_any(*byte_parts: bytes, f: str, length: int):
+    """
+        Takes in an arbitrary amount of byte strings and combines them into a `length/2`-byte bytecode.\n
+        Note that the bytes must be in reverse order beginning from MSB \n
+        (e.g., array of W, X, Y, Z => returns 0xWXYZ)\n
+        Additionally, the combined lengths of said bytes must sum to no more than `length/2`. Anything further
+        will be ignored. If they sum to less than `length/2`, all remaining bytes will be set to 0 and 
+        should be ignored by any functions using returned byte.\n\n
+        The `format` specified will determine how the bytecode will be filled out.\n
+        \t - "any": 
+        fill it out in the order given, no buffer required\n
+        \t - "cs": 
+        client to server. returns it buffered with the action and file requested only.\n
+        \t - "full": 
+        server to worker, worker to server, and server to client. returns it buffered in the order of 
+        `action, client header, file, packet num, total packets`\n
+
+    """
+
+    full_byte = ""
+    if f == "any":
+        for byt in byte_parts:
+            full_byte += str(hex(byt))[2:]
+    elif f == "cs":
+        # client to server (action(1), file(2))
+        i = 0  # order
+        for byt in byte_parts:
+            if i == 0:
+                full_byte += str(hex(byt))[2:].zfill(2)
+            if i == 1:
+                full_byte += str(hex(byt))[2:].zfill(4)
+            i += 1
+    elif f == "sw":
+        # server to worker (action(1), client index(1), file(2))
+        i = 0  # order
+        for byt in byte_parts:
+            if i <= 1:
+                full_byte += str(hex(byt))[2:].zfill(2)
+            if i == 2:
+                full_byte += str(hex(byt))[2:].zfill(4)
+            i += 1
+    elif f == "full":
+        # full length (action(1), client index(1), file(2), packet num(2), total packets(2))
+        i = 0  # order
+        for byt in byte_parts:
+            if i == 0:
+                full_byte += str(hex(byt))[2:].zfill(2)
+            if i == 1:
+                full_byte += str(hex(byt))[2:].zfill(2)
+            if i >= 2:
+                full_byte += str(hex(byt))[2:].zfill(4)
+            i += 1
+
+    full_byte = full_byte.replace("x", "0")
+    if len(full_byte) < length:
+        while len(full_byte) < length:
+            full_byte += "0"
+    print(full_byte)
+    return bytes.fromhex(full_byte)
 
 
-def combine_bytes(*byte_parts: bytes, f:str):
+def combine_bytes(*byte_parts: bytes, f: str):
     """
         Takes in an arbitrary amount of byte strings and combines them into a 8-byte bytecode.\n
         Note that the bytes must be in reverse order beginning from MSB \n
@@ -87,49 +150,10 @@ def combine_bytes(*byte_parts: bytes, f:str):
         \t - "full": 
         server to worker, worker to server, and server to client. returns it buffered in the order of 
         `action, client header, file, packet num, total packets`\n
-        
+
     """
 
-    full_byte = ""
-    if f == "any":
-        for byt in byte_parts:
-            full_byte += str(hex(byt))[2:]
-    elif f == "cs":
-        # client to server (action(1), file(2))
-        i = 0 # order
-        for byt in byte_parts:
-            if i == 0:
-                full_byte += str(hex(byt))[2:].zfill(2)
-            if i == 1:
-                full_byte += str(hex(byt))[2:].zfill(4)
-            i += 1
-    elif f == "sw":
-        # server to worker (action(1), client index(1), file(2))
-        i = 0 # order
-        for byt in byte_parts:
-            if i <= 1:
-                full_byte += str(hex(byt))[2:].zfill(2)
-            if i == 2:
-                full_byte += str(hex(byt))[2:].zfill(4)
-            i += 1
-    elif f == "full":
-        # full length (action(1), client index(1), file(2), packet num(2), total packets(2))
-        i = 0 # order
-        for byt in byte_parts:
-            if i == 0:
-                full_byte += str(hex(byt))[2:].zfill(2)
-            if i == 1:
-                full_byte += str(hex(byt))[2:].zfill(2)
-            if i >= 2:
-                full_byte += str(hex(byt))[2:].zfill(4)
-            i += 1
-            
-    full_byte = full_byte.replace("x", "0")
-    if len(full_byte) < 16:
-        while len(full_byte) < 16:
-            full_byte += "0"
-    # print(full_byte)
-    return bytes.fromhex(full_byte[:16])
+    return combine_bytes_any(*byte_parts, f=f, length=16)
 
 
 def get_bytes(bytestring: bytes, pos: int, length: int):
@@ -144,11 +168,10 @@ def get_bytes(bytestring: bytes, pos: int, length: int):
     return int.from_bytes(bytestring, "big") >> 4*(pos) & int("0x" + "F"*length, 16)
 
 
-
-def index_key_in_list(l:list, k):
+def index_key_in_list(l: list, k):
     """Given a list `l` of dictionaries and a key `k`, return the index of the dictionary
         that has `k` as a value, or -1 if it isn't in it."""
-    
+
     for i in range(len(l)):
         d = l[i]
         if k in list(d.keys()):
@@ -157,14 +180,14 @@ def index_key_in_list(l:list, k):
     return -1
 
 
-def key_in_dict_list(l:list, i:int, n:int):
+def key_in_dict_list(l: list, i: int, n: int):
     """"Given a list `l` of dictionaries and an int `i`, return the `n`th key in the 
         dictionary at the index `i`."""
     print(i)
     return list(l[i].keys())[n]
 
 
-def value_in_dict_list(l:list, i:int, n:int):
+def value_in_dict_list(l: list, i: int, n: int):
     """"Given a list `l` of dictionaries and an int `i`, return the `n`th value in the 
         dictionary at the index `i`."""
     return list(l[i].values())[n]
@@ -191,9 +214,13 @@ def str_to_tuple(s: str):
 
 
 def initialise():
-    """NOTE: ONLY WORKER.PY MAY CALL THIS FILE\n
+    """NOTE: ONLY WORKER.PY MAY CALL THIS FUNCTION\n
         Write the file names from worker/files to res/files.txt."""
-    if __file__ == "worker.py":
-        with open("files.txt", 'w') as f:
-            for file in os.listdir("/files"):
-                f.write(str(file) + "\n")
+
+    print("____________________ INIT __________________")
+    with open("files.txt", 'a') as f:
+        l = os.listdir("./files/")
+        l.sort()
+        for file in l:
+            f.write(str(file) + "\n")
+    f.close()
