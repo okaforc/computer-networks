@@ -4,10 +4,31 @@
 // for all bytecodes less than 8 bytecodes long, all subsequent bits will be set to 0 or otherwise ignored.
 // Said bytecodes are depicted as 0xYY...00
 
+
+
+code = {
+    0x10: "client greet",
+    0x14: "client fetch",
+    0x18: "client received",
+    0x1f: "client end",
+    
+    0xf0: "server ack",
+    0xf4: "server fetch",
+    0xf8: "server return",
+    0xfa: "server ready",
+    0xff: "server end",
+    
+    0xc0: "worker greet",
+    0xc4: "worker return",
+    0xcf: "worker end"
+}
+
+
+
 Client header: 
     - GREET: 1 byte (0x10...00) - Greet action
     - FETCH: 3 bytes [Detailed below (1)]
-    - RECEIVED: 3 bytes [Detailed below (2)]
+    - RECEIVED: 8 bytes [Detailed below (2)]
     - END: 1 byte (0x1F...00) - All files received action
 
     (1) When requesting a file (FETCH):
@@ -16,23 +37,26 @@ Client header:
     
     (2) When receiving a file (RECEIVED):
         - 1 byte (RECEIVED action) - 0x18
+        - 1 byte (Client number) - [discarded]
         - 2 bytes (file requested) - 0x0000 - 0xFFFF
+        - 2 bytes (packet number) - 0x0000 - 0xFFFF
+        - 2 bytes (total packets) - 0x0000 - 0xFFFF
         
 
 Server header:
     - ACK: 1 byte (0xf0...00) - Acknowledgement action
-    - READY: 1 byte (0xfa...00) - Ready to receive action
     - FETCH: 4 bytes [Detailed below (1)]
     - RETURN: 8 bytes [Detailed below (2)]
+    - READY: 1 byte (0xfa...00) - Ready to receive action
     - END: 1 byte (0xFF...00) - End workers action
 
     (1) When requesting a file from worker (FETCH):
-        - 1 byte (FETCH action) - 0x14
+        - 1 byte (FETCH action) - 0xf4
         - 1 byte (Client index) - 0x00-0xFF
         - 2 bytes (file requested) - 0x0000 - 0xFFFF
 
     (2) When returning a file to client (RETURN):
-        - 1 byte (RETURN action) - 0x1c
+        - 1 byte (RETURN action) - 0xf8
         - 1 byte (Client index) - 0x00-0xFF
         - 2 bytes (file requested) - 0x0000 - 0xFFFF
         - 2 bytes (packet number) - 0x0000 - 0xFFFF

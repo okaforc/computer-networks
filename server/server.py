@@ -14,17 +14,19 @@ bufferSize = 65507
 # Inwards
 # Client
 c_greet = 0x10
-fetch = 0x14
+c_fetch = 0x14
 received = 0x18
 c_end = 0x1F
 
 # Workers
 w_greet = 0xc0
-returned = 0xc4
+w_returned = 0xc4
 w_end = 0xcf
 
 # Outwards
 ack = 0xf0
+fetch = 0xf4
+returned = 0xf8
 ready = 0xfa
 end = 0xff
 # server_sig = b"S - "  # server signature
@@ -49,7 +51,7 @@ clients = []  # list of dictionaries each with one
 requests = []
 
 
-def send_client_content(client_index, file_index):
+def send_client_content(client_index:int, file_index:int):
     """Sends the client address at `index` the message (`content`) to any available workers
 
     Args:
@@ -60,7 +62,8 @@ def send_client_content(client_index, file_index):
     # if there are any free workers available, send the request to them
     if len(workerIPs) > 0:
         # tell the worker to fetch the file at file_index for the client at index
-        bytesToSend = combine_bytes(fetch, client_index, file_index)
+        bytesToSend = combine_bytes(fetch, client_index, file_index, f="full")
+        # print(type(file_index), file_index)
 
         # Sending a reply to chosen worker
         # print(len(workerIPs))
@@ -73,8 +76,8 @@ def send_client_content(client_index, file_index):
 
 
 def is_backlog_empty():
-    for i in clients:
-        if len(index_key_in_list(clients, i)) > 0:
+    for i in range(len(clients)):
+        if len(value_in_dict_list(clients, i, 0)) > 0:
             return False
     return True
 
@@ -85,26 +88,29 @@ while True:
 
     # if there are still items left to send, send them to the workers
     if not is_backlog_empty():
-        for i in clients:
-            for j in clients[i]:
+        for i in range(len(clients)):
+            for j in value_in_dict_list(clients, i, 0):
                 if len(workerIPs) > 0:
+                    # print(type(j), j)
+                    # print(value_in_dict_list(clients, i, 0))
+                    # print("wait a sec:", file_requested, value_in_dict_list(clients, i, 0), i)
                     send_client_content(index_key_in_list(clients, i), j)
-                    clients[i].remove(j)
+                    value_in_dict_list(clients, i, 0).remove(j)
 
     bytesAddressPair = UDPServerSocket.recvfrom(bufferSize)
     message = bytesAddressPair[0]
     address = bytesAddressPair[1]
     # signature of received message.
     # the address is saved for each message
-    rec_sig = message[:4]
-
+    # rec_sig = message[:4]
+    
     # Determine the next action based on who said what.
     # Each message is prefixed with the signature of the origin, including the messages the server sends out.
     action = get_bytes(message, 14, 2)
     file_requested = get_bytes(message, 10, 4)
 
     display_msg(message, .5)
-
+    # print(hex(action))
     # what is the client asking to do?
     # match action:
     if action == c_greet:
@@ -112,29 +118,30 @@ while True:
         # clients are indexed by their client index formed upon acknowledgement
         # e.g., clients[1] = [2, 5, 6]
         # where [2, 5, 6] are the indexes the client requested
+        # print(address)
         clients.append({address: []})
-        bytesToSend = combine_bytes(ack)
+        bytesToSend = combine_bytes(ack, f="cs")
         # Sending a reply to client
         UDPServerSocket.sendto(bytesToSend, address)
-    elif action == fetch:
-        is_receiving = False
+    elif action == c_fetch:
+        print("fetchinggggg " + get_available_files()[file_requested])
         if len(workerIPs) > 0:
             send_client_content(index_key_in_list(clients, address), file_requested)
         else:
             # send to client backlog
-            # print(clients[address])
-
-            clients[index_key_in_list(clients, address)][address].append(
-                file_requested)
+            # print(clients[index_key_in_list(clients, address)][address])
+            # print("wait a sec:", file_requested, clients[index_key_in_list(clients, address)][address])
+            # print()
+            clients[index_key_in_list(clients, address)][address].append(file_requested)
     elif action == received:
-        clients[index_key_in_list(clients, address)][address].append(
-            get_bytes(message, 10, 4))
-        bytesToSend = combine_bytes(ready)
+        # clients[index_key_in_list(clients, address)][address].append(
+        #     get_bytes(message, 10, 4))
+        bytesToSend = combine_bytes(ready, f="cs")
         UDPServerSocket.sendto(bytesToSend, address)
     elif action == c_end:
         client_shutdowns += 1
         if client_shutdowns == len(clients):
-            bytesToSend = combine_bytes(end)
+            bytesToSend = combine_bytes(end, f="cs")
             [UDPServerSocket.sendto(bytesToSend, x)
                 for x in workerIPs]  # shut down all workers
     elif action == w_greet:
@@ -142,22 +149,23 @@ while True:
         if address not in workerIPs:
             # add all new worker IP addresses.
             workerIPs.append(address)
-            bytesToSend = combine_bytes(ack)
+            bytesToSend = combine_bytes(ack, f="sw")
             UDPServerSocket.sendto(bytesToSend, address)
-    elif action == returned:
+    elif action == w_returned:
         # display_msg(message, .5)
         # free the current worker IP address
         usedWorkerIPs.remove(address)
         workerIPs.append(address)
-        bytesToSend = combine_bytes(returned, get_bytes(
-            message, 0, 14))  # content without fetch action
+        # TODO: better fix for client numbers < 0x10 (16)
+        bytesToSend = combine_bytes(returned, 0x0, get_bytes(message, 0, 14), f="any")  # content without fetch action
         #  + b' ' + str.encode(str(address[1]))
         # get backlog client's address
         # ad = str_to_tuple(bytesToSend.split(b" | ")[-1].decode())
+        print("returning " + open("files.txt").readlines()[get_bytes(message, 12, 2)])
+        # print()
         UDPServerSocket.sendto(
             bytesToSend,
-            key_in_dict_list(clients, get_bytes(
-                message, 12, 2), 0)  # client index
+            key_in_dict_list(clients, get_bytes(message, 12, 2), 0)  # client index
         )
         # remove item from client backlog
         # mes = fetch + b' ' + file_requested[1]
@@ -170,4 +178,8 @@ while True:
             print("Goodbye")
             break
     else:
-        print("ERROR Unknown Action \"" + rec_sig + "\"")
+        print("ERROR Unknown Action")
+        
+    
+    # if action == c_greet or action == c_fetch or action == received or action == c_end:
+    #     print(hex(action), "wait a sec:", file_requested, clients[index_key_in_list(clients, address)][address])

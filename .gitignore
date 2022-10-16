@@ -1,6 +1,7 @@
 # My own stuff
 run.py
 tcpdump/
+testing.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
