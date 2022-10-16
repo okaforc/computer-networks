@@ -96,7 +96,7 @@ while True:
                     # print(value_in_dict_list(clients, i, 0))
                     # print("wait a sec:", file_requested, value_in_dict_list(clients, i, 0), i)
                     send_client_content(index_key_in_list(clients, key_in_dict_list(clients, i, 0)), j)
-                    print("current client index:", i, "clients:", len(clients))
+                    # print("current client index:", i, "clients:", len(clients))
                     value_in_dict_list(clients, i, 0).remove(j)
 
     bytesAddressPair = UDPServerSocket.recvfrom(bufferSize)

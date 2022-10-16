@@ -8,21 +8,21 @@ import os
 from binascii import hexlify
 
 code = {
-    0x10: "client greet",
-    0x14: "client fetch",
-    0x18: "client received",
-    0x1f: "client end",
+    0x10: "Client GREET",
+    0x14: "Client FETCH",
+    0x18: "Client RECEIVED",
+    0x1f: "Client END",
 
-    0xf0: "server ack",
-    0xf4: "server fetch",
-    0xf8: "server return",
-    0xfa: "server ready",
-    0xff: "server end",
+    0Xf0: "Server ACK",
+    0xf4: "Server FETCH",
+    0xf8: "Server RETURN",
+    0xfa: "Server READY",
+    0xff: "Server END",
 
-    0xc0: "worker greet",
-    0xc4: "worker return",
-    0xc8: "worker ready",
-    0xcf: "worker end"
+    0Xc0: "Worker GREET",
+    0xc4: "Worker RETURN",
+    0xc8: "Worker READY",
+    0xcf: "Worker END"
 }
 
 
@@ -130,7 +130,6 @@ def combine_bytes_any(*byte_parts: bytes, f: str, length: int):
     if len(full_byte) < length:
         while len(full_byte) < length:
             full_byte += "0"
-    print(full_byte)
     return bytes.fromhex(full_byte)
 
 
@@ -175,7 +174,6 @@ def index_key_in_list(l: list, k):
     for i in range(len(l)):
         d = l[i]
         if k in list(d.keys()):
-            print("index:", i)
             return i
     return -1
 
@@ -183,7 +181,6 @@ def index_key_in_list(l: list, k):
 def key_in_dict_list(l: list, i: int, n: int):
     """"Given a list `l` of dictionaries and an int `i`, return the `n`th key in the 
         dictionary at the index `i`."""
-    print(i)
     return list(l[i].keys())[n]
 
 
@@ -196,8 +193,6 @@ def value_in_dict_list(l: list, i: int, n: int):
 def key_from_value(d: dict, val):
     """"Given a dictionary `d`, return the key with the value `val`."""
 
-    print(d)
-    print(val)
     if val in d:
         return list(d.keys())[list(d.values()).index(val)]
     return None
@@ -217,7 +212,7 @@ def initialise():
     """NOTE: ONLY WORKER.PY MAY CALL THIS FUNCTION\n
         Write the file names from worker/files to res/files.txt."""
 
-    print("____________________ INIT __________________")
+    # print("____________________ INIT __________________")
     with open("files.txt", 'a') as f:
         l = os.listdir("./files/")
         l.sort()

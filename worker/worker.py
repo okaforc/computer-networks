@@ -49,19 +49,19 @@ while True:
             if total_packets < 1:
                 total_packets = 0x1
             packet_number = 0x1
-            print("total packets", total_packets)
-            print("client num", client_index)
+            # print("total packets", total_packets)
+            # print("client num", client_index)
             while packet_part:
-                print("packet part:", packet_part)
+                # print("packet part:", packet_part)
                 head = combine_bytes(returned, client_index, file_requested, packet_number, total_packets, f="full")
                 bytesToSend = combine_bytes_any(int.from_bytes(head, "big"), int.from_bytes(packet_part, "big"), f="any", length=min(total_size, bufferSize))
                 # bytesToSend = bytes(head + packet_part)
                 UDPClientSocket.sendto(bytesToSend, serverAddressPort)
-                print(bytesToSend)
+                # print(bytesToSend)
                 
-                print(file_requested)
+                # print(file_requested)
                 print("worker has", get_available_files()[file_requested], packet_number, total_packets, client_index)
-                packet_part = file_to_send.read(bufferSize - 8) # TODO: send parts of the actual file
+                packet_part = file_to_send.read(bufferSize - 8)
                 packet_number += 0x1
             
             UDPClientSocket.sendto(combine_bytes(ready, f="any"), serverAddressPort)

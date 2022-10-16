@@ -93,7 +93,7 @@ while True:
             # UDPClientSocket.sendto(bytesToSend, serverAddressPort)
             while len(item_indexes_to_request) > 0:
                 current_file_to_request = item_indexes_to_request[0]
-                print("requesting " + get_available_files()[item_indexes_to_request[0]])
+                # print("Requesting " + get_available_files()[item_indexes_to_request[0]])
                 # print()
                 # server is awake, so ask to awaken workers
                 bytesToSend = combine_bytes(
@@ -113,10 +113,10 @@ while True:
             
             data = get_bytes(message, 0, n-16) # data from incoming file
             if packet_number == total_packets:
-                print("received " + get_available_files()[file_ind] + ": " + str(packet_number) + "/" + str(total_packets))
+                print("Received " + get_available_files()[file_ind] + ": " + str(packet_number) + "/" + str(total_packets))
                 received_items.append(file_ind)
             else:
-                print("got somethin here: " + get_available_files()[file_ind])
+                print("Partial File: " + get_available_files()[file_ind])
             
             
             with open(new_files_dir+get_available_files()[file_ind], 'ab') as f:
