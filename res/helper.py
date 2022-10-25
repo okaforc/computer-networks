@@ -33,7 +33,7 @@ def pretty_print(msg: bytes):
 
 
 def display_msg(msg: bytes, delay):
-    """Print the encoded message `msg` after `delay` seconds"""
+    """Print the decoded message `msg` after `delay` seconds"""
     
     temp = hex(int.from_bytes(msg, "big"))[2:] # header + data
     n = len(temp)
@@ -43,6 +43,7 @@ def display_msg(msg: bytes, delay):
     if action == code[0x14]:
         new_msg += " " + get_available_files()[get_bytes(msg, n-6, 4)]
     elif action == code[0x18]:
+        new_msg += " " + str(get_bytes(msg, n-4, 2))
         new_msg += " " + get_available_files()[get_bytes(msg, n-8, 4)]
         new_msg += " " + str(get_bytes(msg, n-12, 4))
         new_msg += " " + str(get_bytes(msg, n-16, 4))
@@ -128,7 +129,8 @@ def combine_bytes_any(*byte_parts: bytes, f: str, length: int):
                 full_byte += str(hex(byt))[2:].zfill(4)
             i += 1
 
-    full_byte = full_byte.replace("x", "0")
+    full_byte = full_byte.replace("0x", "").replace("x", "")
+    if len(full_byte) % 2 == 1: full_byte = full_byte + "0" # make it even if it becomes odd
     if len(full_byte) < length:
         while len(full_byte) < length:
             full_byte += "0"
@@ -215,9 +217,11 @@ def initialise():
         Write the file names from worker/files to res/files.txt."""
 
     # print("____________________ INIT __________________")
+    os.remove("files.txt")
     with open("files.txt", 'a') as f:
         l = os.listdir("./files/")
         l.sort()
         for file in l:
             f.write(str(file) + "\n")
+            # print(file)
     f.close()

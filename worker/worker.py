@@ -1,8 +1,9 @@
 # based on https://pythontic.com/modules/socket/udp-client-server-example
+import math
 import os
 import socket
 from helper import *
-initialise() # initialise res/files.txt
+# initialise() # initialise res/files.txt
 # Headers
 
 # Inwards
@@ -41,11 +42,12 @@ while True:
         if action == fetch:
             # Access the file requested by its index and split it into parts to send in a loop
             fs = files_location + get_available_files()[file_requested]
+            print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^", file_requested)
             file_to_send = open(fs, "rb")
             packet_part = file_to_send.read(bufferSize - 8)
             
             total_size = os.stat(fs).st_size
-            total_packets = total_size // bufferSize # integer division
+            total_packets = math.ceil(total_size / bufferSize) # round the division upwards for partial packets
             if total_packets < 1:
                 total_packets = 0x1
             packet_number = 0x1

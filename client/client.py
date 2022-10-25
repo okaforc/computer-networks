@@ -1,4 +1,5 @@
 # based on https://pythontic.com/modules/socket/udp-client-server-example
+import math
 import socket
 import time
 import random
@@ -34,6 +35,7 @@ bufferSize = 65507
 UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
 
+
 def add_item_to_request(index: int):
     """push an item onto the server request queue"""
     item_indexes_to_request.append(index)
@@ -57,7 +59,7 @@ items_to_request = get_available_files()
 # add a random amount of random file indexes
 rand_n = random.randrange(1, 5)
 for i in range(rand_n):
-    to_add = random.randrange(0, len(items_to_request)-1)
+    to_add = random.randrange(0, len(items_to_request))
     if to_add not in item_indexes_to_request: add_item_to_request(to_add) 
 
 # create a list for each part of the file received using the filename as the key
@@ -76,6 +78,7 @@ UDPClientSocket.sendto(combine_bytes(greet, f="cs"), serverAddressPort)
 a = time.time()
 
 while True:
+    # socket.setdefaulttimeout(10)
     msgFromServer = UDPClientSocket.recvfrom(bufferSize)
     header = msgFromServer[0]
 
@@ -84,12 +87,11 @@ while True:
     action = get_bytes(header, n-2, 2)
     client_ind = get_bytes(header, n-4, 2)
     file_ind = get_bytes(header, n-8, 4)
-    print(file_ind)
     packet_number = get_bytes(header, n-12, 4)
     total_packets = get_bytes(header, n-16, 4)
     # only respond once a response from the server has been achieved
     if msgFromServer:
-        display_msg(header, .5)
+        display_msg(header[:16], .5)
         if action == ack or action == s_ready:
             # send all the files in the queue
             # bytesToSend = client_sig + start_req
@@ -111,18 +113,23 @@ while True:
             # bytesToSend = client_sig + end_req
             # UDPClientSocket.sendto(bytesToSend, serverAddressPort)
         elif action == returned:
-            bytesToSend = combine_bytes(received, client_ind, file_ind, f="full")
-            UDPClientSocket.sendto(bytesToSend, serverAddressPort)
+            item_parts[items_to_request[file_ind]].append(header[16:])
+            
 
             data = get_bytes(header, 0, n-16)  # data from incoming file
-            if packet_number == total_packets:
+            # if packet_number == total_packets:
             # if len(item_parts[items_to_request[file_ind].rstrip()]) == total_packets:
-                print("Received " + items_to_request[file_ind] + ": " + str(packet_number) + "/" + str(total_packets))
+            if len(item_parts[items_to_request[file_ind].rstrip()]) >= math.ceil(total_packets/5):
+                print("Received " + items_to_request[file_ind])
                 received_items.append(file_ind)
-            else:
-                print("Partial File: " + items_to_request[file_ind])
+                # tell the server that the client received the file when the file has been received fully
+                bytesToSend = combine_bytes(received, client_ind, file_ind, packet_number, total_packets, f="full")
+                UDPClientSocket.sendto(bytesToSend, serverAddressPort)
                 
-            # item_parts[items_to_request[file_ind]].append(header[16:])
+                
+            else:
+                print("Partial File: " + items_to_request[file_ind] + ": " + str(packet_number) + "/" + str(total_packets))
+                
 
             with open(new_files_dir + str(client_ind) + "_" + items_to_request[file_ind], 'ab') as f:
                 f.write(header[16:])  # data without header
@@ -134,11 +141,16 @@ while True:
         else:
             # print(received_items)
             pass
+        
+        
         if len(item_indexes_to_request) == 0 and len(received_items) == len_of_items_requested:
             bytesToSend = combine_bytes(end, f="cs")
             UDPClientSocket.sendto(bytesToSend, serverAddressPort)
+            for i in received_items:
+                with open(new_files_dir + str(client_ind) + "_" + items_to_request[file_ind], 'ab') as f:
+                    f.close()
             break
 
 b = time.time()
 print("############################\n" +
-      str(b - a) + " " + str(received_items) + "\n############################")
+      str(b - a) + " " + str([items_to_request[i] for i in received_items]) + "\n############################")

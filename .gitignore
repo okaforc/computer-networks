@@ -3,6 +3,7 @@ run.py
 tcpdump/
 testing.py
 *.txt
+rec_files/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

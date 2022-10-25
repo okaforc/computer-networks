@@ -5,6 +5,8 @@
 5.txt
 6.txt
 7.txt
+7b2707ef-64e7-11ec-9eb5-d1fb440dcb2b.png
 8.txt
 9.txt
 bop4.wav
+walter.png
