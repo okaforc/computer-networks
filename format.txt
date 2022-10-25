@@ -1,4 +1,4 @@
-// ! Consider extending all bytecodes to the same length (7 (8?) bytes)
+// ! Consider extending all bytecodes to the same length (8 bytes)
 // ! 8 bytes required for the discering of which client is requesting the current file
 // Actions always come first (first byte) as this determines what the rest of the bytecode means. Hence,
 // for all bytecodes less than 8 bytecodes long, all subsequent bits will be set to 0 or otherwise ignored.

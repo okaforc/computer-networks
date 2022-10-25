@@ -27,6 +27,8 @@ code = {
 
 
 def pretty_print(msg: bytes):
+    """Pretty print `msg`, seperating it every 2 bytes"""
+    
     return hexlify(msg, "-", 2)
 
 
