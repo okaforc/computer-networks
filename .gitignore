@@ -2,7 +2,7 @@
 run.py
 tcpdump/
 testing.py
-*.txt
+# *.txt
 rec_files/
 
 # Byte-compiled / optimized / DLL files

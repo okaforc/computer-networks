@@ -38,11 +38,11 @@ while True:
 
     if msg:
         display_msg(msg, 0)
-        print(pretty_print(msg), client_index)
+        # print(prettify(msg), client_index)
         if action == fetch:
             # Access the file requested by its index and split it into parts to send in a loop
             fs = files_location + get_available_files()[file_requested]
-            print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^", file_requested)
+            # print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^", file_requested)
             file_to_send = open(fs, "rb")
             packet_part = file_to_send.read(bufferSize - 8)
             
@@ -55,6 +55,7 @@ while True:
             # print("client num", client_index)
             while packet_part:
                 # print("packet part:", packet_part)
+                time.sleep(0.3)
                 head = combine_bytes(returned, client_index, file_requested, packet_number, total_packets, f="full")
                 bytesToSend = combine_bytes_any(int.from_bytes(head, "big"), int.from_bytes(packet_part, "big"), f="any", length=min(total_size, bufferSize))
                 # bytesToSend = bytes(head + packet_part)
@@ -62,12 +63,13 @@ while True:
                 # print(bytesToSend)
                 
                 # print(file_requested)
-                print("worker has", get_available_files()[file_requested], packet_number, total_packets, client_index)
+                # print("worker has", get_available_files()[file_requested], packet_number, total_packets, client_index)
                 packet_part = file_to_send.read(bufferSize - 8)
                 packet_number += 0x1
-            
-            UDPClientSocket.sendto(combine_bytes(ready, f="any"), serverAddressPort)
             file_to_send.close()
+            time.sleep(0.5)
+            UDPClientSocket.sendto(combine_bytes(ready, f="any"), serverAddressPort)
+            # print("im ready")
         elif action == s_end:
             # display_msg(msg, 0)
             bytesToSend = combine_bytes(end, f="sw")

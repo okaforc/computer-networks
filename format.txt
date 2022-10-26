@@ -14,12 +14,13 @@ code = {
     
     0xf0: "server ack",
     0xf4: "server fetch",
-    0xf8: "server return",
+    0xf8: "server relay",
     0xfa: "server ready",
     0xff: "server end",
     
     0xc0: "worker greet",
     0xc4: "worker return",
+    0xc8: "worker ready",
     0xcf: "worker end"
 }
 
@@ -46,7 +47,7 @@ Client header:
 Server header:
     - ACK: 1 byte (0xf0...00) - Acknowledgement action
     - FETCH: 4 bytes [Detailed below (1)]
-    - RETURN: 8 bytes [Detailed below (2)]
+    - RELAY: 8 bytes [Detailed below (2)]
     - READY: 1 byte (0xfa...00) - Ready to receive action
     - END: 1 byte (0xFF...00) - End workers action
 
@@ -55,8 +56,8 @@ Server header:
         - 1 byte (Client index) - 0x00-0xFF
         - 2 bytes (file requested) - 0x0000 - 0xFFFF
 
-    (2) When returning a file to client (RETURN):
-        - 1 byte (RETURN action) - 0xf8
+    (2) When returning a file to client (RELAY):
+        - 1 byte (RELAY action) - 0xf8
         - 1 byte (Client index) - 0x00-0xFF
         - 2 bytes (file requested) - 0x0000 - 0xFFFF
         - 2 bytes (packet number) - 0x0000 - 0xFFFF

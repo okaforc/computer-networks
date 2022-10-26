@@ -15,7 +15,7 @@ code = {
 
     0Xf0: "Server ACK",
     0xf4: "Server FETCH",
-    0xf8: "Server RETURN",
+    0xf8: "Server RELAY",
     0xfa: "Server READY",
     0xff: "Server END",
 
@@ -26,8 +26,8 @@ code = {
 }
 
 
-def pretty_print(msg: bytes):
-    """Pretty print `msg`, seperating it every 2 bytes"""
+def prettify(msg: bytes):
+    """Prettify `msg`, seperating it every 2 bytes"""
     
     return hexlify(msg, "-", 2)
 

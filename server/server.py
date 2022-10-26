@@ -27,13 +27,10 @@ w_end = 0xcf
 # Outwards
 ack = 0xf0
 fetch = 0xf4
-returned = 0xf8
+relayed = 0xf8
 ready = 0xfa
 end = 0xff
 # server_sig = b"S - "  # server signature
-
-bytecode = 0  # server header
-
 
 # Create a datagram socket
 UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
@@ -50,6 +47,9 @@ usedWorkerIPs = []
 
 # list of dictionaries each with one containing an address as a key and a queue of requests as the value
 clients = []
+
+# list of dictionaries each with one containing an address as a key and a queue of requests as the value
+worker_bl = {} # worker backlog
 
 requests = []
 
@@ -84,10 +84,16 @@ def is_client_backlog_empty():
             return False
     return True
 
+def is_worker_backlog_empty():
+    for _, vals in worker_bl.items():
+        if len(vals) > 0:
+            return False
+    return True
+
 
 # Listen for incoming datagrams
 while True:
-    time.sleep(.5)
+    time.sleep(.1)
 
     # if there are still items left to send, send them to the workers
     if not is_client_backlog_empty():
@@ -101,6 +107,33 @@ while True:
                         clients, key_in_dict_list(clients, i, 0)), j)
                     # print("current client index:", i, "clients:", len(clients))
                     value_in_dict_list(clients, i, 0).remove(j)
+    
+    # if there are still items left to send, send them to the clients
+    if not is_worker_backlog_empty() and len(usedWorkerIPs) == 0:
+        for ad, vals in worker_bl.items():
+            if len(vals) > 0:
+                alrprnt = False
+                cl_add = None
+                for bs in vals:
+                    time.sleep(.5)
+                    temp = hex(int.from_bytes(bs, "big"))[2:]  # header + data
+                    tn = len(temp)
+                    client_address = key_in_dict_list(clients, get_bytes(bs, tn-4, 2), 0)
+                    cl_add = client_address
+                    if not alrprnt:
+                        print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^", get_available_files()[get_bytes(bs, tn-8, 4)],"PACKET LENGTH:", len(vals), "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+                        alrprnt = True
+                    # print("SENDING TO CLIENT:", bs)
+                    UDPServerSocket.sendto(
+                        bs,
+                        client_address  # client index
+                    )
+                    print(prettify(bs[:32]))
+                worker_bl[ad] = []
+
+                bytesToSend = combine_bytes(ready, f="cs")
+                UDPServerSocket.sendto(bytesToSend, cl_add)
+                
 
     bytesAddressPair = UDPServerSocket.recvfrom(bufferSize)
     message = bytesAddressPair[0]
@@ -123,7 +156,8 @@ while True:
     # print("????????????", action)
     # file_requested = get_bytes(message, 10, 4)
 
-    display_msg(message[:16], .5)
+    display_msg(message[:16], .1)
+    # display_msg(message[:16], 0)
     # print(hex(action))
     # what is the client asking to do?
     # match action:
@@ -148,10 +182,12 @@ while True:
     elif action == received:
         # clients[index_key_in_list(clients, address)][address].append(
         #     get_bytes(message, 10, 4))
-        bytesToSend = combine_bytes(ready, f="cs")
+        bytesToSend = combine_bytes(ack, f="cs")
         UDPServerSocket.sendto(bytesToSend, address)
     elif action == c_end:
         client_shutdowns += 1
+        # print("client shutdowns:", client_shutdowns)
+        # print("workers free:", len(workerIPs))
         if client_shutdowns == len(clients):
             bytesToSend = combine_bytes(end, f="cs")
             [UDPServerSocket.sendto(bytesToSend, x)
@@ -163,12 +199,13 @@ while True:
             workerIPs.append(address)
             bytesToSend = combine_bytes(ack, f="sw")
             UDPServerSocket.sendto(bytesToSend, address)
+            worker_bl[address] = []
     elif action == w_returned:
         temp = hex(int.from_bytes(message, "big"))[2:]  # header + data
         n = len(temp)
         # print("////////////", get_bytes(message, n-2, 2))
         bytesToSend = combine_bytes(
-            returned,  # action
+            relayed,  # action
             get_bytes(message, n-4, 2),  # client index
             get_bytes(message, n-8, 4),  # file index
             get_bytes(message, n-12, 4),  # packet number
@@ -178,7 +215,7 @@ while True:
 
         # print("returning " + get_available_files()[get_bytes(message, 12, 2)])
 
-        print(pretty_print(message[:32]))
+        # print(prettify(message[:32]))
         # print()
         # print("#################### length: " + str(len(clients)) + " ############################")
         # print(clients)
@@ -187,12 +224,10 @@ while True:
         data = get_bytes(message, 0, n-16)
 
         bytesToSend = combine_bytes_any(head, data, f="any", length=n)
+        
+        worker_bl[address].append(bytesToSend)
 
-        UDPServerSocket.sendto(
-            bytesToSend,
-            key_in_dict_list(clients, get_bytes(
-                message, n-4, 2), 0)  # client index
-        )
+        
         # remove item from client backlog
         # mes = fetch + b' ' + file_requested[1]
         # if mes in clients[ad]:
@@ -201,6 +236,8 @@ while True:
         # free the current worker IP address
         usedWorkerIPs.remove(address)
         workerIPs.append(address)
+        # print(len(workerIPs))
+        
     elif action == w_end:
         # display_msg(message, .1)
         worker_shutdowns += 1
