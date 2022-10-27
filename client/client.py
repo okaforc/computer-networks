@@ -10,7 +10,7 @@ from helper import *
 # Inwards
 # server_sig = b'S - '  # server signature
 ack = 0xf0
-relayed = 0xf8
+s_relayed = 0xf8
 s_ready = 0xfa
 
 # Outwards
@@ -18,11 +18,10 @@ s_ready = 0xfa
 greet = 0x10
 fetch = 0x14
 received = 0x18
+relayed = 0x1c
 end = 0x1F
 
-
 new_files_dir = "../rec_files/"  # received files
-
 
 item_indexes_to_request = []
 received_items = []
@@ -32,9 +31,9 @@ serverAddressPort = ("", 20001)
 bufferSize = 65507
 
 # Create a UDP socket at client side
-UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+c_UDP = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
-loss_threshold = 10
+loss_threshold = 0 # max amount of packets allowed to be lost
 
 
 def add_item_to_request(index: int):
@@ -75,13 +74,14 @@ len_of_items_requested = len(item_indexes_to_request)
 # msg1 = greet
 # bytesToSend = msg1
 # Send to server using created UDP socket
-UDPClientSocket.sendto(combine_bytes(greet, f="cs"), serverAddressPort)
+c_UDP.sendto(combine_bytes(greet, f="cs"), serverAddressPort)
 
 a = time.time()
 
 while True:
+    # print("client rotation 1")
     # socket.setdefaulttimeout(10)
-    msgFromServer = UDPClientSocket.recvfrom(bufferSize)
+    msgFromServer = c_UDP.recvfrom(bufferSize)
     header = msgFromServer[0]
 
     temp = hex(int.from_bytes(header, "big"))[2:]  # header + data
@@ -100,6 +100,7 @@ while True:
             # bytesToSend = client_sig + start_req
             # UDPClientSocket.sendto(bytesToSend, serverAddressPort)
             while len(item_indexes_to_request) > 0:
+                # print("client rotation 2")
                 current_file_to_request = item_indexes_to_request[0]
                 # print("Requesting " + get_available_files()[item_indexes_to_request[0]])
                 # print()
@@ -108,14 +109,14 @@ while True:
                     fetch, current_file_to_request, f="cs")
                 # print(msg)
                 # Send to server using created UDP socket
-                UDPClientSocket.sendto(bytesToSend, serverAddressPort)
+                c_UDP.sendto(bytesToSend, serverAddressPort)
                 # ic = message[4:].split(b' ')[-1]  # incoming content
                 # pop received item from queue
                 remove_item_from_request(current_file_to_request)
                 # del items_to_request[0]
             # bytesToSend = client_sig + end_req
             # UDPClientSocket.sendto(bytesToSend, serverAddressPort)
-        elif action == relayed:
+        elif action == s_relayed:
             item_parts[items_to_request[file_ind]].append(header[16:])
 
             data = get_bytes(header, 0, n-16)  # data from incoming file
@@ -130,11 +131,13 @@ while True:
                 # tell the server that the client received the file when the file has been received fully
                 bytesToSend = combine_bytes(
                     received, client_ind, file_ind, packet_number, total_packets, f="full")
-                UDPClientSocket.sendto(bytesToSend, serverAddressPort)
+                c_UDP.sendto(bytesToSend, serverAddressPort)
 
             else:
-                print("Partial File: " + items_to_request[file_ind] + ": " + str(
-                    packet_number) + "/" + str(total_packets))
+                # print("Partial File: " + items_to_request[file_ind] + ": " + str(
+                #     packet_number) + "/" + str(total_packets))
+                c_UDP.sendto(combine_bytes(relayed, client_ind, file_ind, packet_number, total_packets, f="full"), serverAddressPort)
+                
 
             with open(new_files_dir + str(client_ind) + "_" + items_to_request[file_ind], 'ab') as f:
                 f.write(header[16:])  # data without header
@@ -149,7 +152,7 @@ while True:
 
         if len(item_indexes_to_request) == 0 and len(received_items) == len_of_items_requested:
             bytesToSend = combine_bytes(end, f="cs")
-            UDPClientSocket.sendto(bytesToSend, serverAddressPort)
+            c_UDP.sendto(bytesToSend, serverAddressPort)
             for i in received_items:
                 with open(new_files_dir + str(client_ind) + "_" + items_to_request[file_ind], 'ab') as f:
                     f.close()

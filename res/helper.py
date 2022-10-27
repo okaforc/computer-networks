@@ -11,6 +11,7 @@ code = {
     0x10: "Client GREET",
     0x14: "Client FETCH",
     0x18: "Client RECEIVED",
+    0x1c: "Client RELAYED",
     0x1f: "Client END",
 
     0Xf0: "Server ACK",
@@ -42,7 +43,7 @@ def display_msg(msg: bytes, delay):
     new_msg = action
     if action == code[0x14]:
         new_msg += " " + get_available_files()[get_bytes(msg, n-6, 4)]
-    elif action == code[0x18]:
+    elif action == code[0x18] or action == code[0x1c]:
         new_msg += " " + str(get_bytes(msg, n-4, 2))
         new_msg += " " + get_available_files()[get_bytes(msg, n-8, 4)]
         new_msg += " " + str(get_bytes(msg, n-12, 4))
@@ -225,3 +226,4 @@ def initialise():
             f.write(str(file) + "\n")
             # print(file)
     f.close()
+
