@@ -5,22 +5,6 @@ import time
 import random
 from helper import *
 
-# Headers
-
-# Inwards
-# server_sig = b'S - '  # server signature
-ack = 0xf0
-s_relayed = 0xf8
-s_ready = 0xfa
-
-# Outwards
-# client_sig = b'C - '  # client signature
-greet = 0x10
-fetch = 0x14
-received = 0x18
-relayed = 0x1c
-end = 0x1F
-
 new_files_dir = "../rec_files/"  # received files
 
 item_indexes_to_request = []
@@ -33,7 +17,7 @@ bufferSize = 65507
 # Create a UDP socket at client side
 c_UDP = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
-loss_threshold = 0 # max amount of packets allowed to be lost
+loss_threshold = 1  # max amount of packets allowed to be lost
 
 
 def add_item_to_request(index: int):
@@ -66,15 +50,18 @@ for i in range(rand_n):
 # create a list for each part of the file received using the filename as the key
 for i in item_indexes_to_request:
     print(items_to_request[i])
-    item_parts[items_to_request[i].rstrip()] = []
-
+    item_parts[items_to_request[i]] = {
+        # "name": "",  # name of file the data is to be stored in
+        "data": [],  # list to store data in
+        "set": False  # has the list been initialised yet?
+    }
 
 len_of_items_requested = len(item_indexes_to_request)
 
 # msg1 = greet
 # bytesToSend = msg1
 # Send to server using created UDP socket
-c_UDP.sendto(combine_bytes(greet, f="cs"), serverAddressPort)
+c_UDP.sendto(combine_bytes(c_greet, f="cs"), serverAddressPort)
 
 a = time.time()
 
@@ -93,70 +80,54 @@ while True:
     total_packets = get_bytes(header, n-16, 4)
     # only respond once a response from the server has been achieved
     if msgFromServer:
-        display_msg(header[:16], .5)
-        # display_msg(header[:16], 0)
-        if action == ack or action == s_ready:
+        display_msg(header[:16], .1)
+        if action == s_ack or action == s_ready:
             # send all the files in the queue
-            # bytesToSend = client_sig + start_req
-            # UDPClientSocket.sendto(bytesToSend, serverAddressPort)
             while len(item_indexes_to_request) > 0:
-                # print("client rotation 2")
                 current_file_to_request = item_indexes_to_request[0]
-                # print("Requesting " + get_available_files()[item_indexes_to_request[0]])
-                # print()
                 # server is awake, so ask to awaken workers
-                bytesToSend = combine_bytes(
-                    fetch, current_file_to_request, f="cs")
-                # print(msg)
+                bytesToSend = combine_bytes(c_fetch, current_file_to_request, f="cs")
                 # Send to server using created UDP socket
                 c_UDP.sendto(bytesToSend, serverAddressPort)
-                # ic = message[4:].split(b' ')[-1]  # incoming content
-                # pop received item from queue
+                # pop sent item from queue
                 remove_item_from_request(current_file_to_request)
-                # del items_to_request[0]
-            # bytesToSend = client_sig + end_req
-            # UDPClientSocket.sendto(bytesToSend, serverAddressPort)
         elif action == s_relayed:
-            item_parts[items_to_request[file_ind]].append(header[16:])
+            # item_parts[items_to_request[file_ind]].append(header[16:])
+            # write the data into the correct index within the list based on the packet number
+            if not item_parts[items_to_request[file_ind]]["set"]:
+                item_parts[items_to_request[file_ind]]["data"] = [None]*total_packets
+                item_parts[items_to_request[file_ind]]["set"] = True
 
+            item_parts[items_to_request[file_ind]]["data"][packet_number - 1] = header[16:]
             data = get_bytes(header, 0, n-16)  # data from incoming file
-            # if packet_number == total_packets: # if it's received the last numbered packet
-            # if packet_number >= total_packets - 10: # if it's received one of the final 10 packets
-            # if len(item_parts[items_to_request[file_ind].rstrip()]) >= math.ceil(total_packets/5): # if it's received at least a fifth of the total packets
-            # if it's received most packets
-            if len(item_parts[items_to_request[file_ind].rstrip()]) >= total_packets - loss_threshold:
-                # if len(item_parts[items_to_request[file_ind].rstrip()]) == total_packets: # if received all packets
+            
+            if (item_parts[items_to_request[file_ind]]["data"]).count(None) <= loss_threshold:
                 print("Received " + items_to_request[file_ind])
-                received_items.append(file_ind)
+                if file_ind not in received_items: received_items.append(file_ind)
                 # tell the server that the client received the file when the file has been received fully
                 bytesToSend = combine_bytes(
-                    received, client_ind, file_ind, packet_number, total_packets, f="full")
+                    c_received, client_ind, file_ind, packet_number, total_packets, f="full")
                 c_UDP.sendto(bytesToSend, serverAddressPort)
-
             else:
-                # print("Partial File: " + items_to_request[file_ind] + ": " + str(
-                #     packet_number) + "/" + str(total_packets))
-                c_UDP.sendto(combine_bytes(relayed, client_ind, file_ind, packet_number, total_packets, f="full"), serverAddressPort)
-                
-
-            with open(new_files_dir + str(client_ind) + "_" + items_to_request[file_ind], 'ab') as f:
-                f.write(header[16:])  # data without header
-
-            # ic = message[4:].split(b' ')[1]  # incoming content
-            # remove_item_from_request(ic)  # pop received item from queue
-            # bytesToSend = combine_bytes(received, file, f="cs")
-            # UDPClientSocket.sendto(bytesToSend, serverAddressPort)
+                c_UDP.sendto(combine_bytes(c_relayed, client_ind, file_ind, packet_number, total_packets, f="full"), serverAddressPort)
         else:
-            # print(received_items)
+            print("client: unknown action")
             pass
-
+        
+        # write to file
         if len(item_indexes_to_request) == 0 and len(received_items) == len_of_items_requested:
-            bytesToSend = combine_bytes(end, f="cs")
+            for file in item_parts.keys():
+                with open(new_files_dir + str(client_ind) + "_" + file, 'ab') as f:
+                    for i in range(len(item_parts[file]["data"])):
+                        info = item_parts[file]["data"][i]
+                        try:
+                            f.write(info)  # data without header
+                        except TypeError:
+                            print("packet not received:", file, i)
+
+            bytesToSend = combine_bytes(c_end, f="cs")
             c_UDP.sendto(bytesToSend, serverAddressPort)
-            for i in received_items:
-                with open(new_files_dir + str(client_ind) + "_" + items_to_request[file_ind], 'ab') as f:
-                    f.close()
-            break
+            break # end
 
 b = time.time()
 print("############################\n" +

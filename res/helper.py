@@ -7,63 +7,86 @@ import time
 import os
 from binascii import hexlify
 
+#################################################### HEADER INFORMATION ####################################################
+c_greet = 0x10
+c_fetch = 0x14
+c_received = 0x18
+c_relayed = 0x1c
+c_end = 0x1F
+
+s_ack = 0xf0
+s_fetch = 0xf4
+s_relayed = 0xf8
+s_ready = 0xfa
+# s_np = 0xfc
+s_end = 0xff
+
+w_greet = 0xc0
+w_returned = 0xc4
+w_ready = 0xc8
+w_end = 0xcf
+
+
 code = {
-    0x10: "Client GREET",
-    0x14: "Client FETCH",
-    0x18: "Client RECEIVED",
-    0x1c: "Client RELAYED",
-    0x1f: "Client END",
+    c_greet: "Client GREET",
+    c_fetch: "Client FETCH",
+    c_received: "Client RECEIVED",
+    c_relayed: "Client RELAYED",
+    c_end: "Client END",
 
-    0Xf0: "Server ACK",
-    0xf4: "Server FETCH",
-    0xf8: "Server RELAY",
-    0xfa: "Server READY",
-    0xff: "Server END",
+    s_ack: "Server ACK",
+    s_fetch: "Server FETCH",
+    s_relayed: "Server RELAY",
+    s_ready: "Server READY",
+    # s_np: "Server NEXT",
+    s_end: "Server END",
 
-    0Xc0: "Worker GREET",
-    0xc4: "Worker RETURN",
-    0xc8: "Worker READY",
-    0xcf: "Worker END"
+    w_greet: "Worker GREET",
+    w_returned: "Worker RETURN",
+    w_ready: "Worker READY",
+    w_end: "Worker END"
 }
 
 
+#################################################### HEADER INFORMATION ####################################################
+
 def prettify(msg: bytes):
     """Prettify `msg`, seperating it every 2 bytes"""
-    
+
     return hexlify(msg, "-", 2)
 
 
-def display_msg(msg: bytes, delay):
-    """Print the decoded message `msg` after `delay` seconds"""
-    
-    temp = hex(int.from_bytes(msg, "big"))[2:] # header + data
+def display_msg(msg: bytes, d=0.0):
+    """Decode and print the encoded message `msg` and wait `d` seconds"""
+
+    temp = hex(int.from_bytes(msg, "big"))[2:]  # header + data
     n = len(temp)
-    
+
     action = code[get_bytes(msg, n-2, 2)]
     new_msg = action
-    if action == code[0x14]:
+    if action == code[c_fetch]:
         new_msg += " " + get_available_files()[get_bytes(msg, n-6, 4)]
-    elif action == code[0x18] or action == code[0x1c]:
+    elif action in (code[c_received], code[c_relayed]):
         new_msg += " " + str(get_bytes(msg, n-4, 2))
         new_msg += " " + get_available_files()[get_bytes(msg, n-8, 4)]
         new_msg += " " + str(get_bytes(msg, n-12, 4))
         new_msg += " " + str(get_bytes(msg, n-16, 4))
-    elif action == code[0xf4]:
+    elif action == code[s_fetch]:
         new_msg += " " + str(get_bytes(msg, n-4, 2))
         new_msg += " " + get_available_files()[get_bytes(msg, n-8, 4)]
-    elif action == code[0xf8]:
+    elif action == code[s_relayed]:
         new_msg += " " + str(get_bytes(msg, n-4, 2))
         new_msg += " " + get_available_files()[get_bytes(msg, n-8, 4)]
         new_msg += " " + str(get_bytes(msg, n-12, 4))
         new_msg += " " + str(get_bytes(msg, n-16, 4))
-    elif action == code[0xc4]:
+    elif action == code[w_returned]:
         new_msg += " " + str(get_bytes(msg, n-4, 2))
         new_msg += " " + get_available_files()[get_bytes(msg, n-8, 4)]
         new_msg += " " + str(get_bytes(msg, n-12, 4))
         new_msg += " " + str(get_bytes(msg, n-16, 4))
 
     print("{}".format(new_msg))
-    time.sleep(delay)
+    time.sleep(d)
 
 
 def get_available_files():
@@ -131,7 +154,8 @@ def combine_bytes_any(*byte_parts: bytes, f: str, length: int):
             i += 1
 
     full_byte = full_byte.replace("0x", "").replace("x", "")
-    if len(full_byte) % 2 == 1: full_byte = full_byte + "0" # make it even if it becomes odd
+    if len(full_byte) % 2 == 1:
+        full_byte = full_byte + "0"  # make it evenly long if it becomes odd
     if len(full_byte) < length:
         while len(full_byte) < length:
             full_byte += "0"
@@ -166,7 +190,7 @@ def get_bytes(bytestring: bytes, pos: int, length: int):
         This will return the bytes ascending up the string from LSB to MSB (right to left) 
         indexed at 0.\n\n
 
-        e.g., `get_bits(0x12345678, 4, 3)` will return 0x234
+        e.g., `get_bytes(0x12345678, 4, 3)` will return 0x234
     """
 
     return int.from_bytes(bytestring, "big") >> 4*(pos) & int("0x" + "F"*length, 16)
@@ -226,4 +250,3 @@ def initialise():
             f.write(str(file) + "\n")
             # print(file)
     f.close()
-
