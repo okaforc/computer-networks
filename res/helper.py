@@ -235,18 +235,3 @@ def str_to_tuple(s: str):
     a = p[0][1:-1]
     b = int(p[1])
     return (a, b)
-
-
-def initialise():
-    """NOTE: ONLY WORKER.PY MAY CALL THIS FUNCTION\n
-        Write the file names from worker/files to res/files.txt."""
-
-    # print("____________________ INIT __________________")
-    os.remove("files.txt")
-    with open("files.txt", 'a') as f:
-        l = os.listdir("./files/")
-        l.sort()
-        for file in l:
-            f.write(str(file) + "\n")
-            # print(file)
-    f.close()

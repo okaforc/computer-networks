@@ -17,6 +17,8 @@ s_UDP.bind((localIP, localPort))
 print("UDP server up and listening")
 client_shutdowns = 0
 worker_shutdowns = 0
+all_files_sent = False
+files_sent = 0
 
 workerIPs = []
 usedWorkerIPs = []
@@ -41,7 +43,8 @@ def send_client_content(client_index: int, file_index: int):
     # if there are any free workers available, send the request to them
     if len(workerIPs) > 0:
         # tell the worker to fetch the file at file_index for the client at index
-        bytesToSend = combine_bytes(s_fetch, client_index, file_index, f="full")
+        bytesToSend = combine_bytes(
+            s_fetch, client_index, file_index, f="full")
         # print(type(file_index), file_index)
 
         # Sending a reply to chosen worker
@@ -72,8 +75,7 @@ def is_worker_backlog_empty():
 while True:
     # print("server rotation 1")
     # print("gotten here 1")
-    time.sleep(.1)
-    s_UDP.settimeout(10)
+    # time.sleep(.1)
 
     # if there are still items left to send, send them to the workers
     if not is_client_backlog_empty():
@@ -95,8 +97,9 @@ while True:
         print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TRANSFERRING FILES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
         # print(clients)
         for vals in worker_bl.values():
-            # print(len(vals))
+            print(len(vals))
             if len(vals) > 0:
+                s_UDP.settimeout(1)
                 send_to_next = False
                 cl_add = None
                 temp = hex(int.from_bytes(vals[0], "big"))[2:]  # header + data
@@ -112,7 +115,8 @@ while True:
                     bs = vals[i]
                     temp = hex(int.from_bytes(bs, "big"))[2:]  # header + data
                     tn = len(temp)
-                    client_address = key_in_dict_list(clients, get_bytes(bs, tn-4, 2), 0)
+                    client_address = key_in_dict_list(
+                        clients, get_bytes(bs, tn-4, 2), 0)
                     # print(get_bytes(bs, tn-4, 2))
                     temp_fr = get_bytes(bs, tn-8, 4)  # temp file requested
                     temp_pn = get_bytes(bs, tn-12, 4)  # temp packet number
@@ -124,7 +128,8 @@ while True:
                     try:
                         c_ack = s_UDP.recvfrom(bufferSize)
                         # display_msg(c_ack[0])
-                        ta = get_bytes(c_ack[0], len(hex(int.from_bytes(c_ack[0], "big"))[2:])-2, 2)  # temp action
+                        ta = get_bytes(c_ack[0], len(
+                            hex(int.from_bytes(c_ack[0], "big"))[2:])-2, 2)  # temp action
                         # if ta == c_relayed and client_address == cl_add: # ensure correct address is sending ack
                         if ta == c_relayed:
                             # cl_add = c_ack[1]
@@ -132,39 +137,49 @@ while True:
                                 s_UDP.sendto(bs, client_address)
                             else:
                                 send_to_next = False
+                                send_attempts = 0
                         elif ta == c_end or ta == c_received:
                             # the current client has received all its files, so don't send it anything
                             # instead, send the next header immediately
                             if ta == c_end:
                                 client_shutdowns += 1
-                                print("client", get_bytes(bs, tn-4, 2), "ended (", client_shutdowns, ")")
+                                print("client", get_bytes(bs, tn-4, 2),
+                                      "ended (", client_shutdowns, ")")
                             send_to_next = True
+                            files_sent += 1
                         else:
                             print("???", code[ta])
                     except TimeoutError:
-                        s_UDP.settimeout(2)
-                        i-=1
-                        print("Packet timed out:", get_available_files()
-                              [temp_fr], get_bytes(bs, tn-4, 2), temp_pn, temp_tp, i)
+                        s_UDP.settimeout(1)
+                        i -= 1
+                        print("Packet timed out:", get_available_files()[
+                              temp_fr], get_bytes(bs, tn-4, 2), temp_pn, temp_tp, i)
                         s_UDP.sendto(bs, client_address)
+                        send_attempts += 1
+                        if send_attempts >= 3:
+                            send_to_next = True
+                            i += 1
                     i += 1
 
                 # bytesToSend = combine_bytes(ready, f="cs")
                 # s_UDP.sendto(bytesToSend, cl_add)
+        all_files_sent = True
+
+    if all_files_sent and files_sent > 0:
+        print("all files sent.")
         for ad in worker_bl.keys():
             worker_bl[ad] = []
-            
+
         if client_shutdowns == len(clients):
             bytesToSend = combine_bytes(s_end, f="cs")
             [s_UDP.sendto(bytesToSend, x)
                 for x in workerIPs]  # shut down all workers
-    
-    
 
     # signature of received message.
     # the address is saved for each message
     # rec_sig = message[:4]
     # print("gotten here 1.5.3")
+    s_UDP.settimeout(10)
     bytesAddressPair = s_UDP.recvfrom(bufferSize)
     message = bytesAddressPair[0]
     address = bytesAddressPair[1]
@@ -174,8 +189,8 @@ while True:
     action = get_bytes(message, n-2, 2)
     file_requested = get_bytes(message, n-6, 4)
 
-    display_msg(message[:16], .1)
-    
+    display_msg(message[:16])
+
     # Determine the next action based on who said what.
     if action == c_greet:
         # add the client to the list of lists
