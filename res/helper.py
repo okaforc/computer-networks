@@ -125,24 +125,6 @@ def combine_bytes_any(*byte_parts: bytes, f: str, length: int):
     if f == "any":
         for byt in byte_parts:
             full_byte += str(hex(byt))[2:]
-    # elif f == "cs":
-    #     # client to server (action(1), file(2))
-    #     i = 0  # order
-    #     for byt in byte_parts:
-    #         if i == 0:
-    #             full_byte += str(hex(byt))[2:].zfill(2)
-    #         if i == 1:
-    #             full_byte += str(hex(byt))[2:].zfill(4)
-    #         i += 1
-    # elif f == "sw":
-    #     # server to worker (action(1), client index(1), file(2))
-    #     i = 0  # order
-    #     for byt in byte_parts:
-    #         if i <= 1:
-    #             full_byte += str(hex(byt))[2:].zfill(2)
-    #         if i == 2:
-    #             full_byte += str(hex(byt))[2:].zfill(4)
-    #         i += 1
     elif f == "head":
         # full length (action(1), client index(1), file(2), packet num(2), total packets(2))
         i = 0  # order
@@ -196,6 +178,19 @@ def get_bytes(bytestring: bytes, pos: int, length: int):
     """
 
     return int.from_bytes(bytestring, "big") >> 4*(pos) & int("0x" + "F"*length, 16)
+
+def extract_header(bytestring:bytes):
+    """Extract the header from a bytestring returned from combine_bytes()"""
+    
+    temp = hex(int.from_bytes(bytestring, "big"))[2:]  # header + data
+    n = len(temp)
+    action = get_bytes(bytestring, n-2, 2)
+    client_ind = get_bytes(bytestring, n-4, 2)
+    file_ind = get_bytes(bytestring, n-8, 4)
+    packet_number = get_bytes(bytestring, n-12, 4)
+    total_packets = get_bytes(bytestring, n-16, 4)
+    
+    return (action, client_ind, file_ind, packet_number, total_packets)
 
 
 def index_key_in_list(l: list, k):

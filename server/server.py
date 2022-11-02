@@ -3,11 +3,11 @@ import time
 import random
 from helper import *
 
-localIP = ""
-localPort = 20001
 bufferSize = 65507
 
 
+localIP = ""
+localPort = 20001
 # Create a datagram socket
 s_UDP = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
@@ -22,33 +22,20 @@ files_sent = 0
 
 workerIPs = []
 usedWorkerIPs = []
-
 # list of dictionaries each with one containing an address as a key and a queue of requests as the value
 clients = []
-
-# list of dictionaries each with one containing an address as a key and a queue of requests as the value
+# dictionary containing a worker address as a key and its returned packets as a list as a value
 worker_bl = {}  # worker backlog
-
-requests = []
 
 
 def send_client_content(client_index: int, file_index: int):
-    """Sends the client address at `index` the message (`content`) to any available workers
-
-    Args:
-        client_index (int): index of the address that is requesting the item
-        file_index (int): index of the file the client is requesting
-    """
+    """Sends the `file_index` to any available workers"""
 
     # if there are any free workers available, send the request to them
     if len(workerIPs) > 0:
-        # tell the worker to fetch the file at file_index for the client at index
-        bytesToSend = combine_bytes(
-            s_fetch, client_index, file_index)
-        # print(type(file_index), file_index)
+        bytesToSend = combine_bytes(s_fetch, client_index, file_index)
 
         # Sending a reply to chosen worker
-        # print(len(workerIPs))
         worker_chosen = random.randrange(0, len(workerIPs))
         s_UDP.sendto(bytesToSend, workerIPs[worker_chosen])
 
@@ -131,7 +118,8 @@ while True:
                         # display_msg(c_ack[0])
                         tn2 = len(hex(int.from_bytes(c_ack[0], "big"))[2:])
                         ta = get_bytes(c_ack[0], tn2-2, 2)  # temp action
-                        tpckt = get_bytes(c_ack[0], tn2-12, 4)  # temp packet num
+                        # temp packet num
+                        tpckt = get_bytes(c_ack[0], tn2-12, 4)
                         # if ta == c_relayed and client_address == cl_add: # ensure correct address is sending ack
                         # if ta == c_relayed and tpckt == temp_pn - 1:
                         if ta == c_relayed:
@@ -154,7 +142,7 @@ while True:
                         else:
                             print("???", end="")
                             display_msg(c_ack[0])
-                            # print("??????????????????????????") 
+                            # print("??????????????????????????")
                             print(tpckt, temp_pn - 1)
                             # i -= 1
                     except TimeoutError:
@@ -248,7 +236,7 @@ while True:
             get_bytes(message, n-8, 4),  # file index
             get_bytes(message, n-12, 4),  # packet number
             get_bytes(message, n-16, 4)  # total packets
-            
+
         )
         # print(prettify(nmsg))
         head = int.from_bytes(nmsg, "big")

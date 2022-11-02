@@ -13,7 +13,6 @@ dataBuffer = 65507 - 8 - 1
 file_indexes = "files.txt"
 files_location = "files/"
 
-is_packetised = False  # has the current requested file already been packetized?
 poll_ack = False  # poll server ACK
 output = 0x0
 packet_number = 0x1
@@ -80,18 +79,14 @@ while True:
                 i = 1
                 while True:
                     try:
-                        # print(prettify(current_file_to_return[0][:16]))
                         # send packets to server after receiving a response
                         packet_resp = w_UDP.recvfrom(incomingBuffer)
                         p_msg = packet_resp[0]
-                        # display_msg(p_msg)
-                        temp = hex(int.from_bytes(p_msg, "big"))[
-                            2:]  # header + data
+                        temp = hex(int.from_bytes(p_msg, "big"))[2:]  # header + data
                         p_n = len(temp)
                         p_action = get_bytes(p_msg, p_n-2, 2)
                         p_pckt = get_bytes(p_msg, p_n-12, 4)
                         if p_action == s_ack and p_pckt == i:
-                        # if p_action == s_ack:
                             if i >= total_packets:
                                 break
                             w_UDP.sendto(
@@ -112,7 +107,7 @@ while True:
                 poll_ack = True
             elif action == s_end:
                 # display_msg(msg, 0)
-                bytesToSend = combine_bytes(w_end,)
+                bytesToSend = combine_bytes(w_end)
                 # Send to server using created UDP socket
                 w_UDP.sendto(bytesToSend, serverAddressPort)
                 break

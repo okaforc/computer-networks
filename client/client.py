@@ -41,8 +41,8 @@ items_to_request = get_available_files()
 
 
 # add a random amount of random file indexes
-# rand_n = random.randrange(1, 5)
-rand_n = random.randrange(1, len(items_to_request)+1)
+rand_n = random.randrange(1, 5)
+# rand_n = random.randrange(1, len(items_to_request)+1)
 for i in range(rand_n):
     to_add = random.randrange(0, len(items_to_request))
     if to_add not in item_indexes_to_request:
@@ -75,18 +75,14 @@ a = time.time()
 
 while True:
     # print("client rotation 1")
-    # c_UDP.settimeout(5)
+    c_UDP.settimeout(3)
     try:
         msgFromServer = c_UDP.recvfrom(bufferSize)
         header = msgFromServer[0]
 
         temp = hex(int.from_bytes(header, "big"))[2:]  # header + data
         n = len(temp)
-        action = get_bytes(header, n-2, 2)
-        client_ind = get_bytes(header, n-4, 2)
-        file_ind = get_bytes(header, n-8, 4)
-        packet_number = get_bytes(header, n-12, 4)
-        total_packets = get_bytes(header, n-16, 4)
+        action, client_ind, file_ind, packet_number, total_packets = extract_header(header)
         # only respond once a response from the server has been achieved
         if msgFromServer:
             display_msg(header[:8])
@@ -105,12 +101,10 @@ while True:
                 # item_parts[items_to_request[file_ind]].append(header[16:])
                 # write the data into the correct index within the list based on the packet number
                 if not item_parts[items_to_request[file_ind]]["set"]:
-                    item_parts[items_to_request[file_ind]
-                               ]["data"] = [None]*total_packets
+                    item_parts[items_to_request[file_ind]]["data"] = [None]*total_packets
                     item_parts[items_to_request[file_ind]]["set"] = True
 
-                item_parts[items_to_request[file_ind]
-                           ]["data"][packet_number - 1] = header[8:]
+                item_parts[items_to_request[file_ind]]["data"][packet_number - 1] = header[8:]
                 data = get_bytes(header, 0, n-16)  # data from incoming file
 
                 if (item_parts[items_to_request[file_ind]]["data"]).count(None) <= loss_threshold:
@@ -144,7 +138,7 @@ while True:
                     try:
                         f.write(info)  # data without header
                     except TypeError:
-                        print("packet not received:", file, i)
+                        print("Packet not received:", file, i)
 
         bytesToSend = combine_bytes(c_end)
         c_UDP.sendto(bytesToSend, serverAddressPort)
