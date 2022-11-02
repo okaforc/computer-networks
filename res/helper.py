@@ -26,6 +26,8 @@ w_returned = 0xc4
 w_ready = 0xc8
 w_end = 0xcf
 
+FILLER = 0x0
+
 
 code = {
     c_greet: "Client GREET",
@@ -65,7 +67,7 @@ def display_msg(msg: bytes, d=0.0):
     action = code[get_bytes(msg, n-2, 2)]
     new_msg = action
     if action == code[c_fetch]:
-        new_msg += " " + get_available_files()[get_bytes(msg, n-6, 4)]
+        new_msg += " " + get_available_files()[get_bytes(msg, n-8, 4)]
     elif action in (code[c_received], code[c_relayed]):
         new_msg += " " + str(get_bytes(msg, n-4, 2))
         new_msg += " " + get_available_files()[get_bytes(msg, n-8, 4)]
@@ -123,25 +125,25 @@ def combine_bytes_any(*byte_parts: bytes, f: str, length: int):
     if f == "any":
         for byt in byte_parts:
             full_byte += str(hex(byt))[2:]
-    elif f == "cs":
-        # client to server (action(1), file(2))
-        i = 0  # order
-        for byt in byte_parts:
-            if i == 0:
-                full_byte += str(hex(byt))[2:].zfill(2)
-            if i == 1:
-                full_byte += str(hex(byt))[2:].zfill(4)
-            i += 1
-    elif f == "sw":
-        # server to worker (action(1), client index(1), file(2))
-        i = 0  # order
-        for byt in byte_parts:
-            if i <= 1:
-                full_byte += str(hex(byt))[2:].zfill(2)
-            if i == 2:
-                full_byte += str(hex(byt))[2:].zfill(4)
-            i += 1
-    elif f == "full":
+    # elif f == "cs":
+    #     # client to server (action(1), file(2))
+    #     i = 0  # order
+    #     for byt in byte_parts:
+    #         if i == 0:
+    #             full_byte += str(hex(byt))[2:].zfill(2)
+    #         if i == 1:
+    #             full_byte += str(hex(byt))[2:].zfill(4)
+    #         i += 1
+    # elif f == "sw":
+    #     # server to worker (action(1), client index(1), file(2))
+    #     i = 0  # order
+    #     for byt in byte_parts:
+    #         if i <= 1:
+    #             full_byte += str(hex(byt))[2:].zfill(2)
+    #         if i == 2:
+    #             full_byte += str(hex(byt))[2:].zfill(4)
+    #         i += 1
+    elif f == "head":
         # full length (action(1), client index(1), file(2), packet num(2), total packets(2))
         i = 0  # order
         for byt in byte_parts:
@@ -162,7 +164,7 @@ def combine_bytes_any(*byte_parts: bytes, f: str, length: int):
     return bytes.fromhex(full_byte)
 
 
-def combine_bytes(*byte_parts: bytes, f: str):
+def combine_bytes(*byte_parts: bytes, f="head"):
     """
         Takes in an arbitrary amount of byte strings and combines them into a 8-byte bytecode.\n
         Note that the bytes must be in reverse order beginning from MSB \n

@@ -21,7 +21,7 @@ total_packets = 0x1
 has_packets_to_send = False
 
 
-bytesToSend = combine_bytes(w_greet, f="full")
+bytesToSend = combine_bytes(w_greet)
 w_UDP = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 w_UDP.sendto(bytesToSend, serverAddressPort)
 
@@ -61,7 +61,7 @@ while True:
                     packet_part = file_to_send.read(dataBuffer)
                     while packet_part:
                         head = combine_bytes(
-                            w_returned, client_index, file_requested, packet_number, total_packets, f="full")
+                            w_returned, client_index, file_requested, packet_number, total_packets)
                         current_file_to_return.append(
                             combine_bytes_any(
                                 int.from_bytes(head),
@@ -90,8 +90,8 @@ while True:
                         p_n = len(temp)
                         p_action = get_bytes(p_msg, p_n-2, 2)
                         p_pckt = get_bytes(p_msg, p_n-12, 4)
-                        # if p_action == s_ack and p_pckt == i - 1:
-                        if p_action == s_ack:
+                        if p_action == s_ack and p_pckt == i:
+                        # if p_action == s_ack:
                             if i >= total_packets:
                                 break
                             w_UDP.sendto(
@@ -112,7 +112,7 @@ while True:
                 poll_ack = True
             elif action == s_end:
                 # display_msg(msg, 0)
-                bytesToSend = combine_bytes(w_end, f="sw")
+                bytesToSend = combine_bytes(w_end,)
                 # Send to server using created UDP socket
                 w_UDP.sendto(bytesToSend, serverAddressPort)
                 break
@@ -124,5 +124,5 @@ while True:
         pass
 
     if poll_ack:
-        w_UDP.sendto(combine_bytes(w_ready, f="any"), serverAddressPort)
+        w_UDP.sendto(combine_bytes(w_ready), serverAddressPort)
         print("polling ready")

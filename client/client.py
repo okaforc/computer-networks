@@ -41,7 +41,8 @@ items_to_request = get_available_files()
 
 
 # add a random amount of random file indexes
-rand_n = random.randrange(1, 5)
+# rand_n = random.randrange(1, 5)
+rand_n = random.randrange(1, len(items_to_request)+1)
 for i in range(rand_n):
     to_add = random.randrange(0, len(items_to_request))
     if to_add not in item_indexes_to_request:
@@ -68,7 +69,7 @@ len_of_items_requested = len(item_indexes_to_request)
 # msg1 = greet
 # bytesToSend = msg1
 # Send to server using created UDP socket
-c_UDP.sendto(combine_bytes(c_greet, f="cs"), serverAddressPort)
+c_UDP.sendto(combine_bytes(c_greet), serverAddressPort)
 
 a = time.time()
 
@@ -95,7 +96,7 @@ while True:
                     current_file_to_request = item_indexes_to_request[0]
                     # server is awake, so ask to awaken workers
                     bytesToSend = combine_bytes(
-                        c_fetch, current_file_to_request, f="cs")
+                        c_fetch, FILLER, current_file_to_request)
                     # Send to server using created UDP socket
                     c_UDP.sendto(bytesToSend, serverAddressPort)
                     # pop sent item from queue
@@ -118,20 +119,20 @@ while True:
                         received_items.append(file_ind)
                     # tell the server that the client received the file when the file has been received fully
                     bytesToSend = combine_bytes(
-                        c_received, client_ind, file_ind, packet_number, total_packets, f="full")
+                        c_received, client_ind, file_ind, packet_number, total_packets)
                     c_UDP.sendto(bytesToSend, serverAddressPort)
                     print(
                         f'gotten {len(received_items)}/{len_of_items_requested} files')
                 else:
                     c_UDP.sendto(combine_bytes(c_relayed, client_ind, file_ind,
-                                 packet_number, total_packets, f="full"), serverAddressPort)
+                                 packet_number, total_packets), serverAddressPort)
 
             else:
                 print("client: unknown action")
                 pass
     except:
         # if there's a hang for whatever reason, tell the server you received something and move on
-        c_UDP.sendto(combine_bytes(c_received, f="full"), serverAddressPort)
+        c_UDP.sendto(combine_bytes(c_received), serverAddressPort)
         c_UDP.settimeout(3)
 
     # write to file
@@ -145,7 +146,7 @@ while True:
                     except TypeError:
                         print("packet not received:", file, i)
 
-        bytesToSend = combine_bytes(c_end, f="cs")
+        bytesToSend = combine_bytes(c_end)
         c_UDP.sendto(bytesToSend, serverAddressPort)
         break  # end
 

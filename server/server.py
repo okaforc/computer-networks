@@ -44,7 +44,7 @@ def send_client_content(client_index: int, file_index: int):
     if len(workerIPs) > 0:
         # tell the worker to fetch the file at file_index for the client at index
         bytesToSend = combine_bytes(
-            s_fetch, client_index, file_index, f="full")
+            s_fetch, client_index, file_index)
         # print(type(file_index), file_index)
 
         # Sending a reply to chosen worker
@@ -129,9 +129,11 @@ while True:
                     try:
                         c_ack = s_UDP.recvfrom(bufferSize)
                         # display_msg(c_ack[0])
-                        ta = get_bytes(c_ack[0], len(
-                            hex(int.from_bytes(c_ack[0], "big"))[2:])-2, 2)  # temp action
+                        tn2 = len(hex(int.from_bytes(c_ack[0], "big"))[2:])
+                        ta = get_bytes(c_ack[0], tn2-2, 2)  # temp action
+                        tpckt = get_bytes(c_ack[0], tn2-12, 4)  # temp packet num
                         # if ta == c_relayed and client_address == cl_add: # ensure correct address is sending ack
+                        # if ta == c_relayed and tpckt == temp_pn - 1:
                         if ta == c_relayed:
                             # cl_add = c_ack[1]
                             if not send_to_next:
@@ -139,6 +141,7 @@ while True:
                             else:
                                 send_to_next = False
                                 send_attempts = 0
+                            # print(tpckt, temp_pn - 1)
                         elif ta == c_end or ta == c_received:
                             # the current client has received all its files, so don't send it anything
                             # instead, send the next header immediately
@@ -149,12 +152,16 @@ while True:
                             send_to_next = True
                             files_sent += 1
                         else:
-                            print("???", code[ta])
+                            print("???", end="")
+                            display_msg(c_ack[0])
+                            # print("??????????????????????????") 
+                            print(tpckt, temp_pn - 1)
+                            # i -= 1
                     except TimeoutError:
                         s_UDP.settimeout(1)
                         i -= 1
                         print("Packet timed out:", get_available_files()[
-                              temp_fr], get_bytes(bs, tn-4, 2), temp_pn, temp_tp, i)
+                              temp_fr], temp_pn, temp_tp)
                         s_UDP.sendto(bs, client_address)
                         send_attempts += 1
                         if send_attempts >= 3:
@@ -172,7 +179,7 @@ while True:
             worker_bl[ad] = []
 
         if client_shutdowns == len(clients):
-            bytesToSend = combine_bytes(s_end, f="cs")
+            bytesToSend = combine_bytes(s_end)
             [s_UDP.sendto(bytesToSend, x)
                 for x in workerIPs]  # shut down all workers
 
@@ -188,7 +195,7 @@ while True:
     temp = hex(int.from_bytes(message, "big"))[2:]  # header + data
     n = len(temp)
     action = get_bytes(message, n-2, 2)
-    file_requested = get_bytes(message, n-6, 4)
+    file_requested = get_bytes(message, n-8, 4)
 
     display_msg(message[:16])
 
@@ -199,7 +206,7 @@ while True:
         # e.g., clients[client_a] = [2, 5, 6]
         # where [2, 5, 6] are the indexes client_a requested
         clients.append({address: []})
-        bytesToSend = combine_bytes(s_ack, f="cs")
+        bytesToSend = combine_bytes(s_ack)
         # Sending a reply to client
         s_UDP.sendto(bytesToSend, address)
     elif action == c_fetch:
@@ -213,14 +220,14 @@ while True:
     elif action == c_relayed:
         pass
     elif action == c_received:
-        bytesToSend = combine_bytes(s_ack, f="cs")
+        bytesToSend = combine_bytes(s_ack)
         s_UDP.sendto(bytesToSend, address)
     elif action == c_end:
         client_shutdowns += 1
         # print("client shutdowns:", client_shutdowns)
         # print("workers free:", len(workerIPs))
         if client_shutdowns == len(clients):
-            bytesToSend = combine_bytes(s_end, f="cs")
+            bytesToSend = combine_bytes(s_end)
             [s_UDP.sendto(bytesToSend, x)
                 for x in workerIPs]  # shut down all workers
     elif action == w_greet:
@@ -228,7 +235,7 @@ while True:
         if address not in workerIPs:
             # add all new worker IP addresses.
             workerIPs.append(address)
-            bytesToSend = combine_bytes(s_ack, f="sw")
+            bytesToSend = combine_bytes(s_ack)
             s_UDP.sendto(bytesToSend, address)
             worker_bl[address] = []
     elif action == w_returned:
@@ -240,8 +247,8 @@ while True:
             get_bytes(message, n-4, 2),  # client index
             get_bytes(message, n-8, 4),  # file index
             get_bytes(message, n-12, 4),  # packet number
-            get_bytes(message, n-16, 4),  # total packets
-            f="full"  # format
+            get_bytes(message, n-16, 4)  # total packets
+            
         )
         # print(prettify(nmsg))
         head = int.from_bytes(nmsg, "big")
@@ -254,8 +261,7 @@ while True:
                 get_bytes(message, n-4, 2),
                 get_bytes(message, n-8, 4),
                 get_bytes(message, n-12, 4),
-                get_bytes(message, n-16, 4),
-                f="full"
+                get_bytes(message, n-16, 4)
             ),
             address
         )
@@ -265,7 +271,7 @@ while True:
             usedWorkerIPs.remove(address)
             workerIPs.append(address)
             print("free:", len(workerIPs))
-        s_UDP.sendto(combine_bytes(s_ack, f="full"), address)
+        s_UDP.sendto(combine_bytes(s_ack), address)
 
     elif action == w_end:
         # display_msg(message, .1)
