@@ -99,6 +99,7 @@ while True:
         for vals in worker_bl.values():
             print(len(vals))
             if len(vals) > 0:
+                send_attempts = 0
                 s_UDP.settimeout(1)
                 send_to_next = False
                 cl_add = None

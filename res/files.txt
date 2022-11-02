@@ -21,4 +21,5 @@ Bee_4096.png
 bop4.wav
 celes.mp4
 funky.png
+thistbh.gif
 walter.png

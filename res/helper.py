@@ -17,7 +17,7 @@ c_end = 0x1F
 s_ack = 0xf0
 s_fetch = 0xf4
 s_relayed = 0xf8
-s_ready = 0xfa
+# s_ready = 0xfa
 # s_np = 0xfc
 s_end = 0xff
 
@@ -37,7 +37,7 @@ code = {
     s_ack: "Server ACK",
     s_fetch: "Server FETCH",
     s_relayed: "Server RELAY",
-    s_ready: "Server READY",
+    # s_ready: "Server READY",
     # s_np: "Server NEXT",
     s_end: "Server END",
 

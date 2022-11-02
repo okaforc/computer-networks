@@ -89,7 +89,7 @@ while True:
         # only respond once a response from the server has been achieved
         if msgFromServer:
             display_msg(header[:8])
-            if action == s_ack or action == s_ready:
+            if action == s_ack:
                 # send all the files in the queue
                 while len(item_indexes_to_request) > 0:
                     current_file_to_request = item_indexes_to_request[0]
