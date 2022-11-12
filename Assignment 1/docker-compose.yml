@@ -1,0 +1,28 @@
+version: "3"
+services:
+  tcpdump:
+    image: kaazing/tcpdump
+    network_mode: "host"
+    volumes:
+      - ./tcpdump:/tcpdump
+  server:
+    network_mode: "host"
+    build: 
+      dockerfile: server/Dockerfile
+    command: python server.py
+  client:
+    build: 
+      dockerfile: client/Dockerfile
+    command: python client.py
+    network_mode: "host"
+    depends_on:
+      - server
+    volumes:
+    - ./rec_files:/rec_files
+  worker:
+    build: 
+      dockerfile: worker/Dockerfile
+    command: python worker.py
+    network_mode: "host"
+    depends_on:
+      - server

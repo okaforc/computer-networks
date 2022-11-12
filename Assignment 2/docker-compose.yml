@@ -1,0 +1,48 @@
+version: "3"
+networks:
+  sender:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.17.0/24
+  recvr:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.0.0/16
+services:
+  tcpdump:
+    image: kaazing/tcpdump
+    network_mode: "host"
+    volumes:
+      - ./tcpdump:/tcpdump
+  client:
+    build:
+      dockerfile:
+        client/Dockerfile
+    networks:
+      sender:
+        ipv4_address: 192.168.17.20
+    depends_on:
+      - server
+  fwd:
+    build:
+      dockerfile:
+        fwd/Dockerfile
+    networks:
+      sender:
+        ipv4_address: 192.168.17.10
+      recvr:
+        ipv4_address: 172.30.1.1
+    depends_on:
+      - server    
+  server:
+    build:
+      dockerfile:
+        server/Dockerfile
+    networks:
+      recvr:
+        ipv4_address: 172.30.1.2
+
