@@ -1,12 +1,12 @@
 version: "3"
 networks:
-  sender:
+  local:
     driver: bridge
     ipam:
       driver: default
       config:
         - subnet: 192.168.17.0/24
-  recvr:
+  cloud:
     driver: bridge
     ipam:
       driver: default
@@ -23,7 +23,7 @@ services:
       dockerfile:
         client/Dockerfile
     networks:
-      sender:
+      local:
         ipv4_address: 192.168.17.20
     depends_on:
       - server
@@ -32,9 +32,9 @@ services:
       dockerfile:
         fwd/Dockerfile
     networks:
-      sender:
+      local:
         ipv4_address: 192.168.17.10
-      recvr:
+      cloud:
         ipv4_address: 172.30.1.1
     depends_on:
       - server    
@@ -43,6 +43,6 @@ services:
       dockerfile:
         server/Dockerfile
     networks:
-      recvr:
+      cloud:
         ipv4_address: 172.30.1.2
 
