@@ -1,5 +1,5 @@
 FROM python:latest
 ADD client/client.py /client/
 WORKDIR /client/
-EXPOSE 55555
+EXPOSE 54321
 ENTRYPOINT [ "python3", "-u", "client.py"]

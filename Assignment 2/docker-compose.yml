@@ -1,4 +1,4 @@
-version: "3"
+version: "2"
 networks:
   local:
     driver: bridge
@@ -11,38 +11,113 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 172.30.1.0/16
+        - subnet: 172.30.1.0/24
+  re1:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 113.105.55.0/24
+  re2:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 140.120.100.0/24
+
 services:
   tcpdump:
     image: kaazing/tcpdump
     network_mode: "host"
     volumes:
       - ./tcpdump:/tcpdump
+
   client:
     build:
       dockerfile:
         client/Dockerfile
     networks:
       local:
-        ipv4_address: 192.168.17.20
+        ipv4_address: 192.168.17.3
+    # home name, home ip, target name, fwd ip, ctrl ip
+    command: ["0x101111", "192.168.17.3", "0xCCCC00", "192.168.17.10", "192.168.17.30"]
     depends_on:
+      - control
+      - fwd1
+      - fwd2
+      - fwd3
       - server
-  fwd:
+
+  fwd1:
     build:
       dockerfile:
         fwd/Dockerfile
     networks:
       local:
         ipv4_address: 192.168.17.10
-      cloud:
-        ipv4_address: 172.30.1.1
+      re1:
+        ipv4_address: 113.105.55.10
+    # own name, first ip, second ip, first controller ip, second controller up
+    command: ["0xAA0000", "192.168.17.10", "113.105.55.10", "192.168.17.30", "113.105.55.30"]
     depends_on:
-      - server    
+      - server
+      - control
+  
+  fwd2:
+    build:
+      dockerfile:
+        fwd/Dockerfile
+    networks:
+      re1:
+        ipv4_address: 113.105.55.20
+      re2:
+        ipv4_address: 140.120.100.10
+    # own name, first ip, second ip, first controller ip, second controller up
+    command: ["0xAA0001", "113.105.55.20", "140.120.100.10", "113.105.55.30", "140.120.100.30"]
+    depends_on:
+      - server
+      - control
+  
+  fwd3:
+    build:
+      dockerfile:
+        fwd/Dockerfile
+    networks:
+      re2:
+        ipv4_address: 140.120.100.20
+      cloud:
+        ipv4_address: 172.30.1.20
+    # own name, first ip, second ip, first controller ip, second controller up
+    command: ["0xAA0002", "140.120.100.20", "172.30.1.20", "140.120.100.30", 172.30.1.30"]
+    depends_on:
+      - server
+      - control
+
   server:
     build:
       dockerfile:
         server/Dockerfile
     networks:
       cloud:
-        ipv4_address: 172.30.1.2
+        ipv4_address: 172.30.1.3
+    # home name, home ip, fwd ip, ctrl ip
+    command: ["0xCCCC00", "172.30.1.3", "172.30.1.20", 172.30.1.30"]
+    depends_on:
+      - control
+
+  control:
+    build:
+      dockerfile:
+        control/Dockerfile
+    networks:
+      local:
+        ipv4_address: 192.168.17.30
+      re1:
+        ipv4_address: 113.105.55.30
+      re2:
+        ipv4_address: 140.120.100.30
+      cloud:
+        ipv4_address: 172.30.1.30
+    # local ip, re1 ip, re2 ip, cloud ip
+    command: ["192.168.17.30", "113.105.55.30", "140.120.100.30", 172.30.1.30"]
 
