@@ -4,72 +4,75 @@
 # reX -> relay X
 
 Client 1
-    - Network: local
+    - Network: local1
     - Connects to FWD 1
-    - ID - 0x100010
+    - ID - 0xAA0010
     - IP - 192.168.17.3
 Client 2
-    - Network: re1
+    - Network: local2
     - Connects to FWD 2
-    - ID - 0x100011
+    - ID - 0xAA0011
     - IP - 113.105.55.3
 Client 3
+    - Network: local3
     - Connects to FWD 3
-    - ID - 0x100012
-    - IP - 180.23.234.1
+    - ID - 0xAA0012
+    - IP - 180.23.234.3
+Server: 
+    - Network: cloud
+    - Connects to FWD 5
+    - ID - 0xABCDEF
+    - IP - 172.30.1.3
 
 
 FWD 1:
-    - Networks: local, re1
-    - ID - 0xAA0000
+    - Networks: local1, internet
+    - ID - 0xFF0000
     - IPs
-        - local: 192.168.17.10
-        - re1: 113.105.55.10
-FWD 2
-    - Networks: re1, re2
-    - ID - 0xAA0001
+        - local1: 192.168.17.10
+        - internet: 103.17.0.10
+FWD 2:
+    - Networks: local2, relay
+    - ID - 0xFF0001
     - IPs
-        - re1: 113.105.55.20
-        - re2: 140.120.100.10
+        - local2: 113.105.55.20
+        - relay: 140.120.10.10
 FWD 3:
-    - Networks: re2, cloud
-    - ID - 0xAA0002 
+    - Networks: local3, relay
+    - ID - 0xFF0002 
     - IPs
-        - re2: 140.120.100.20
-        - cloud: 172.30.1.20
+        - local3: 180.23.234.20
+        - relay: 140.120.10.15
 FWD 4: 
-    - Networks: undetermined
-    - ID - 0xAA0003 
-    - IP - 180.12.4.14
+    - Networks: relay, internet
+    - ID - 0xFF0003 
+    - IPs
+        - relay: 140.120.10.20
+        - internet: 103.17.0.15
 FWD 5: 
-    - Networks: re1, re2
-    - ID - 0xAA0004
-    - IP - 140.129.2.12
-FWD 6: 
-    - Networks: undetermined
-    - ID - 0xAA0005
-    - IP - 210.69.6.16
-
-
-Server: 
-    - Network: cloud
-    - Connects to FWD 3
-    - ID - 0xCCCC00
-    - IP - 172.30.1.3
+    - Networks: internet, cloud
+    - ID - 0xFF0004
+    - IPs
+        - internet: 103.17.0.20
+        - cloud: 172.30.1.10
 
 
 # IPs refers to the networks the controller shares with the given forwarder
 Controller: 
-    ID - 0xFF-FF-FF
+    ID - 0xCC00CC
     IPs:
-        - local - 192.168.17.30
-        - re1 - 113.105.55.30
-        - re2 - 140.120.100.30
-        - cloud - 172.30.1.30
+        - local1    - 192.168.17.30
+        - local2    - 113.105.55.30
+        - local3    - 180.23.234.30
+        - relay     - 140.120.10.30
+        - internet  - 103.17.0.30
+        - cloud     - 172.30.1.30
 
 
 Networks:
-    - local - 192.168.17.0/24
-    - re1 - 113.105.55.0/16
-    - re2 - 140.120.100.0/16
-    - cloud - 172.30.1.0/16
+    - local1    - 192.168.17.0/24
+    - local2    - 113.105.55.0/24
+    - local3    - 180.23.234.0/24
+    - relay     - 140.120.10.0/24
+    - internet  - 103.17.0.0/16
+    - cloud     - 172.30.1.0/24

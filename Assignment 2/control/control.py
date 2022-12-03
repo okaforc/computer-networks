@@ -6,17 +6,19 @@ print("Controller ready")
 
 # forwarding table, in the form of a dictionary
 MAP_ID = {
-    0x110010: '',
-    0xAA0000: '113.105.55.20',
-    0xAA0001: '140.120.100.20',
-    0xAA0002: '172.30.1.3',
-    0xCCCC00: '',
+    0xFF0000: '103.17.0.20',
+    0xFF0001: '140.120.10.20',
+    0xFF0002: '140.120.10.20',
+    0xFF0003: '103.17.0.20',
+    0xFF0004: '172.30.1.3',
 }
 
-ip_local = argv[1]
-ip_re1 = argv[2]
-ip_re2 = argv[3]
-ip_cloud = argv[4]
+# ip_local1 = argv[1]
+# ip_local2 = argv[2]
+# ip_local3 = argv[3]
+# ip_relay = argv[4]
+# ip_internet = argv[5]
+# ip_cloud = argv[6]
 
 ctrlPort = 54321
 
