@@ -19,6 +19,7 @@ s_UDP.bind((s_ip, srvrPort))
 bufferSize = 65507
 
 print("server ready")
-recvd = s_UDP.recvfrom(bufferSize)
-header = recvd[0]
-print("Server - {}".format(header))
+while True:
+    recvd = s_UDP.recvfrom(bufferSize)
+    header = recvd[0]
+    print("Server - {}".format(header))

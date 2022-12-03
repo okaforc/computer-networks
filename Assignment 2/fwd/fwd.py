@@ -1,5 +1,6 @@
 import socket
 from sys import argv
+import time
 
 
 def confirmNextAddress():
@@ -28,11 +29,13 @@ target_fwd = ""
 
 
 while True:
+    time.sleep(.1)
     msgFromServer = f_UDP.recvfrom(bufferSize)
     header = msgFromServer[0] # message received
     address = msgFromServer[1] # client address
     # print("FWD - {}".format(header))
-    print("FWD {} - Relaying...".format(name))
+    incoming_name = hex(int(str(header).split(' ')[-1][:-1], 16))
+    print("FWD {} - Relaying {}...".format(name, incoming_name))
     target_fwd = confirmNextAddress()
     fwdAddressPort = (target_fwd, fwdPort)
     f_UDP.sendto(header, fwdAddressPort) # relay message from client to server

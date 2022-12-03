@@ -32,7 +32,7 @@ services:
     volumes:
       - ./tcpdump:/tcpdump
 
-  client:
+  client1:
     build:
       dockerfile:
         client/Dockerfile
@@ -40,7 +40,23 @@ services:
       local:
         ipv4_address: 192.168.17.3
     # home name, home ip, target name, fwd ip, ctrl ip
-    command: ["0x101111", "192.168.17.3", "0xCCCC00", "192.168.17.10", "192.168.17.30"]
+    command: ["0x100010", "192.168.17.3", "0xCCCC00", "192.168.17.10", "192.168.17.30"]
+    depends_on:
+      - control
+      - fwd1
+      - fwd2
+      - fwd3
+      - server
+  
+  client2:
+    build:
+      dockerfile:
+        client/Dockerfile
+    networks:
+      re1:
+        ipv4_address: 113.105.55.3
+    # home name, home ip, target name, fwd ip, ctrl ip
+    command: ["0x100011", "113.105.55.3", "0xCCCC00", "113.105.55.20", "140.120.100.30"]
     depends_on:
       - control
       - fwd1
@@ -57,7 +73,7 @@ services:
         ipv4_address: 192.168.17.10
       re1:
         ipv4_address: 113.105.55.10
-    # own name, first ip, second ip, first controller ip, second controller up
+    # own name, first ip, second ip, first controller ip, second controller ip
     command: ["0xAA0000", "192.168.17.10", "113.105.55.10", "192.168.17.30", "113.105.55.30"]
     depends_on:
       - server
@@ -72,7 +88,7 @@ services:
         ipv4_address: 113.105.55.20
       re2:
         ipv4_address: 140.120.100.10
-    # own name, first ip, second ip, first controller ip, second controller up
+    # own name, first ip, second ip, first controller ip, second controller ip
     command: ["0xAA0001", "113.105.55.20", "140.120.100.10", "113.105.55.30", "140.120.100.30"]
     depends_on:
       - server
@@ -87,7 +103,7 @@ services:
         ipv4_address: 140.120.100.20
       cloud:
         ipv4_address: 172.30.1.20
-    # own name, first ip, second ip, first controller ip, second controller up
+    # own name, first ip, second ip, first controller ip, second controller ip
     command: ["0xAA0002", "140.120.100.20", "172.30.1.20", "140.120.100.30", 172.30.1.30"]
     depends_on:
       - server

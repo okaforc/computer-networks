@@ -1,7 +1,7 @@
 # The config for each node
 # Each node has an IP address and a hex ID
-# Client 2-3, FWD 4-6 will be implemented in part 3
-# rex -> relay x
+# Client 3, FWD 4-6 will be implemented in part 3
+# reX -> relay X
 
 Client 1
     - Network: local
@@ -9,9 +9,10 @@ Client 1
     - ID - 0x100010
     - IP - 192.168.17.3
 Client 2
+    - Network: re1
     - Connects to FWD 2
     - ID - 0x100011
-    - IP - 207.113.8.2
+    - IP - 113.105.55.3
 Client 3
     - Connects to FWD 3
     - ID - 0x100012

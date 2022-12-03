@@ -1,5 +1,6 @@
 import socket
 from sys import argv
+# import time
 
 print("Controller ready")
 
@@ -27,10 +28,11 @@ ctrl_UDP = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 ctrl_UDP.bind(("", ctrlPort))
 
 while True:
+    # time.sleep(.1)
     msg = ctrl_UDP.recvfrom(bufferSize)
     header = int(msg[0], 16) # message received
     address = msg[1] # client address
-    print("Controller - Message from {}".format(hex(header).upper()))
+    print("Controller - Message from {}".format('0x' + hex(header)[2:].upper()))
 
     # if MAP_ID[header] == '':
         # MAP_ID[header] = address[1]
