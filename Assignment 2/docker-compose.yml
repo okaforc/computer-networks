@@ -106,7 +106,7 @@ services:
         cloud:
           ipv4_address: 172.30.1.3
       # home name, home ip, fwd ip, ctrl ip
-      command: ["0xABCDEF", "172.30.1.3", "172.30.1.20", 172.30.1.30"]
+      command: ["0xABCDEF", "172.30.1.3", "172.30.1.20", "172.30.1.30"]
       depends_on:
         - control
   

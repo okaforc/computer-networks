@@ -61,18 +61,46 @@ FWD 5:
 Controller: 
     ID - 0xCC00CC
     IPs:
-        - local1    - 192.168.17.30
-        - local2    - 113.105.55.30
-        - local3    - 180.23.234.30
-        - relay     - 140.120.10.30
-        - internet  - 103.17.0.30
-        - cloud     - 172.30.1.30
+        - local1    : 192.168.17.30
+        - local2    : 113.105.55.30
+        - local3    : 180.23.234.30
+        - relay     : 140.120.10.30
+        - internet  : 103.17.0.30
+        - cloud     : 172.30.1.30
 
 
 Networks:
-    - local1    - 192.168.17.0/24
-    - local2    - 113.105.55.0/24
-    - local3    - 180.23.234.0/24
-    - relay     - 140.120.10.0/24
-    - internet  - 103.17.0.0/16
-    - cloud     - 172.30.1.0/24
+    - local1....: 192.168.17.0/24
+    - local2....: 113.105.55.0/24
+    - local3....: 180.23.234.0/24
+    - relay.....: 140.120.10.0/24
+    - internet..: 103.17.0.0/16
+    - cloud.....: 172.30.1.0/24
+
+
+
+
+Format of all messages:
+    - [name] [action] [parameters] [payload]
+
+Format for specific nodes:
+    Client:
+        - To controller
+            - GREET: [name] [GREET]
+        - To forwarder
+            - FWD: [name] [FWD] [destination] [payload]
+    
+    Forwarder:
+        - To controller
+            - EDGE: [name] [EDGE] [from] [to]
+            - FWD: [name] [FWD] [to id]
+        - To forwarder/endpoint
+            - FWD: [name] [FWD] [destination] [payload]
+    
+    Controller:
+        - To client:
+            - On GREET: [name] [ACK]
+        - To forwarder:
+            - On EDGE: [name] [ACK]
+            - On FWD: [name] [PATH] [path/INVALID]
+
